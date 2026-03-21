@@ -1,64 +1,130 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { getLehrprobe } from '../lib/db';
-import Auswertebogen from '../components/Auswertebogen';
-import { ChevronLeft, User, Calendar } from 'lucide-react';
-import { format } from 'date-fns';
+import { useState, useEffect, useCallback } from 'react';
+import { BEWERTUNGSKRITERIEN } from '../data/kriterien';
+import { getAuswertungenForLehrprobe, addAuswertung, updateAuswertung } from '../lib/db';
+import { debounce } from '../lib/utils';
+import clsx from 'clsx'; // Wir nutzen clsx für dynamische Klassen
 
-function LehrprobeDetail() {
-  const { id } = useParams();
-  const [probe, setProbe] = useState(null);
+const PUNKTE_SKALA = [
+  { value: 5, label: 'Sehr Gut', symbol: '++' },
+  { value: 4, label: 'Gut', symbol: '+' },
+  { value: 3, label: 'Befriedigend', symbol: 'o' },
+  { value: 2, label: 'Ausreichend', symbol: '-' },
+  { value: 1, label: 'Mangelhaft', symbol: '--' },
+];
+
+function Auswertebogen({ lehrprobeId }) {
+  const [auswertung, setAuswertung] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const debouncedSave = useCallback(
+    debounce(async (dataToSave) => {
+      if (dataToSave.id) {
+        await updateAuswertung(dataToSave);
+      } else {
+        const newId = crypto.randomUUID();
+        const finalData = { ...dataToSave, id: newId, lehrprobeId };
+        await addAuswertung(finalData);
+        setAuswertung(finalData);
+      }
+    }, 300),
+    [lehrprobeId]
+  );
+
   useEffect(() => {
-    const fetchProbe = async () => {
+    const loadAuswertung = async () => {
       setLoading(true);
-      const data = await getLehrprobe(id);
-      setProbe(data);
+      const existing = await getAuswertungenForLehrprobe(lehrprobeId);
+      setAuswertung(existing[0] || { punkte: {}, notizen: {}, gesamtnote: '' });
       setLoading(false);
     };
-    fetchProbe();
-  }, [id]);
+    loadAuswertung();
+  }, [lehrprobeId]);
 
-  if (loading) {
-    return <div className="text-center p-12">Lade Lehrprobe...</div>;
+  useEffect(() => {
+    if (auswertung && !loading) {
+      debouncedSave(auswertung);
+    }
+  }, [auswertung, loading, debouncedSave]);
+
+  const handlePunkteChange = (kriteriumId, value) => {
+    setAuswertung(prev => ({ ...prev, punkte: { ...prev.punkte, [kriteriumId]: value }}));
+  };
+
+  const handleNotizChange = (kriteriumId, text) => {
+     setAuswertung(prev => ({ ...prev, notizen: { ...prev.notizen, [kriteriumId]: text }}));
+  };
+  
+  const handleGesamtnoteChange = (text) => {
+    setAuswertung(prev => ({ ...prev, gesamtnote: text }));
   }
 
-  if (!probe) {
-    return (
-      <div className="text-center p-12">
-        <h2 className="text-xl font-bold mb-4">Lehrprobe nicht gefunden</h2>
-        <Link to="/" className="text-blue-600 hover:underline">
-          Zurück zur Übersicht
-        </Link>
-      </div>
-    );
+  if (loading) {
+    return <div className="text-center p-8">Lade Auswertebogen...</div>;
   }
 
   return (
-    <div>
-      {/* Wir nutzen jetzt unsere Button-Klasse für den Zurück-Link */}
-      <Link to="/" className="btn btn-secondary mb-8 no-print">
-        <ChevronLeft size={20} />
-        <span>Zurück zur Übersicht</span>
-      </Link>
-
-      {/* Die Info-Box bekommt ein Upgrade */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-8 print-container info-box">
-        <h1 className="text-3xl font-bold text-slate-900 mb-1">{probe.thema}</h1>
-        <p className="text-lg text-slate-600 mb-4">Lehrprobe von <span className="font-semibold text-slate-800">{probe.prüfling}</span></p>
-        
-        <div className="flex items-center gap-4 text-slate-500 text-sm border-t border-slate-200 pt-4 mt-4">
-            <div className="flex items-center gap-2">
-                <Calendar size={16} />
-                <span>{format(new Date(probe.datum), 'dd. MMMM yyyy')}</span>
-            </div>
+    <div className="space-y-8">
+      {BEWERTUNGSKRITERIEN.map(kategorie => (
+        <div key={kategorie.id} className="bg-white rounded-xl shadow-md overflow-hidden print-container auswertebogen-kategorie">
+          <h3 className="text-xl font-bold p-5 bg-slate-50 border-b border-slate-200 text-slate-800">{kategorie.titel}</h3>
+          <div className="divide-y divide-slate-200">
+            {kategorie.punkte.map(punkt => {
+              const kriteriumId = `${kategorie.id}_${punkt.id}`;
+              const bewertung = auswertung?.punkte?.[kriteriumId];
+              return (
+                <div key={kriteriumId} className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                  <p className="font-semibold text-slate-800 self-center">{punkt.text}</p>
+                  <div>
+                    <div className="flex flex-wrap gap-2 radio-container-print">
+                      {PUNKTE_SKALA.map(skala => (
+                        <label key={skala.value} className="cursor-pointer">
+                          <input
+                            type="radio"
+                            name={kriteriumId}
+                            value={skala.value}
+                            checked={bewertung === skala.value}
+                            onChange={() => handlePunkteChange(kriteriumId, skala.value)}
+                            className="sr-only peer"
+                          />
+                          <div className={clsx(
+                            'px-3 py-1.5 border rounded-full text-sm font-semibold transition-colors',
+                            bewertung === skala.value
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-300'
+                          )}>
+                            {skala.symbol}
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                    {/* Angezeigte Bewertung für den Druck */}
+                     {bewertung && <p className="radio-print-label">{PUNKTE_SKALA.find(s => s.value === bewertung)?.label}</p>}
+                    <textarea
+                      value={auswertung?.notizen?.[kriteriumId] || ''}
+                      onChange={(e) => handleNotizChange(kriteriumId, e.target.value)}
+                      placeholder="Notizen..."
+                      className="w-full mt-3 p-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 transition"
+                      rows="2"
+                    ></textarea>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
-
-      <Auswertebogen lehrprobeId={probe.id} />
+      ))}
+       <div className="bg-white rounded-xl shadow-md p-5 print-container">
+          <h3 className="text-xl font-bold mb-3 text-slate-800">Gesamteindruck & Note</h3>
+           <textarea
+              value={auswertung?.gesamtnote || ''}
+              onChange={(e) => handleGesamtnoteChange(e.target.value)}
+              placeholder="Zusammenfassende Bemerkungen, Empfehlungen und Note eintragen..."
+              className="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 transition"
+              rows="5"
+            ></textarea>
+       </div>
     </div>
   );
 }
 
-export default LehrprobeDetail;
+export default Auswertebogen;
