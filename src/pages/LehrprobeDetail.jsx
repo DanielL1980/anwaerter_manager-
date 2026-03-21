@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { getLehrprobe } from '../lib/db';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { getLehrprobe, deleteLehrprobe } from '../lib/db'; // deleteLehrprobe importieren
 import Auswertebogen from '../components/Auswertebogen';
-import { ChevronLeft, User, Calendar, Printer } from 'lucide-react'; // Printer-Icon importieren
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal'; // Modal importieren
+import { ChevronLeft, User, Calendar, Printer, Trash2 } from 'lucide-react'; // Trash2-Icon importieren
 import { format } from 'date-fns';
-import '../print.css'; // <-- HIER WIRD DIE DRUCK-CSS-DATEI IMPORTIERT
+import '../print.css';
 
 function LehrprobeDetail() {
   const { id } = useParams();
+  const navigate = useNavigate(); // Hook für die Weiterleitung nach dem Löschen
   const [probe, setProbe] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // State für das Modal
 
   useEffect(() => {
     const fetchProbe = async () => {
@@ -23,6 +26,12 @@ function LehrprobeDetail() {
 
   const handlePrint = () => {
     window.print();
+  };
+  
+  // Funktion zum Löschen
+  const handleDelete = async () => {
+    await deleteLehrprobe(id);
+    navigate('/'); // Nach dem Löschen zur Startseite zurückkehren
   };
 
   if (loading) {
@@ -47,11 +56,16 @@ function LehrprobeDetail() {
           <ChevronLeft size={20} />
           <span>Zurück zur Übersicht</span>
         </Link>
-        {/* NEUER DRUCKEN-BUTTON */}
-        <button onClick={handlePrint} className="btn btn-primary">
-          <Printer size={20} />
-          <span>Drucken / PDF</span>
-        </button>
+        <div className="flex gap-2">
+          <button onClick={handlePrint} className="btn btn-secondary">
+            <Printer size={20} />
+            <span>Drucken / PDF</span>
+          </button>
+          {/* NEUER LÖSCHEN-BUTTON */}
+          <button onClick={() => setIsDeleteModalOpen(true)} className="btn bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-500">
+            <Trash2 size={20} />
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-md p-6 mb-8 print-container info-box">
@@ -67,6 +81,14 @@ function LehrprobeDetail() {
       </div>
 
       <Auswertebogen lehrprobeId={probe.id} />
+      
+      {/* Das Modal wird hier eingebunden und gesteuert */}
+      <ConfirmDeleteModal 
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleDelete}
+        itemName={probe.prüfling}
+      />
     </div>
   );
 }
