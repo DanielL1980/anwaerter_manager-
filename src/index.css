@@ -4,6 +4,24 @@
 
 @layer base {
   body {
-    @apply text-gray-900 bg-gray-50;
+    /* Ein weicheres, professionelleres Hintergrundgrau */
+    @apply bg-slate-100 text-slate-800 antialiased;
+  }
+  /* Bessere Schriftart für Lesbarkeit */
+  html {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  }
+}
+
+@layer components {
+  /* Wir definieren wiederverwendbare Button-Stile */
+  .btn {
+    @apply inline-flex items-center gap-2 rounded-md px-4 py-2 font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  .btn-primary {
+    @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+  }
+  .btn-secondary {
+    @apply bg-slate-200 text-slate-800 hover:bg-slate-300 focus:ring-slate-400;
   }
 }
