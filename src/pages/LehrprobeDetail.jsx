@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getLehrprobe } from '../lib/db';
-import { ChevronLeft, User, Book, Calendar } from 'lucide-react';
+import Auswertebogen from '../components/Auswertebogen'; // <-- NEU
+import { ChevronLeft, User, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 
 function LehrprobeDetail() {
@@ -59,12 +60,8 @@ function LehrprobeDetail() {
         </div>
       </div>
 
-      {/* --- Der eigentliche Auswertebogen kommt als nächstes hier hin --- */}
-      <div className="bg-white rounded-lg shadow p-8">
-        <h3 className="text-xl font-bold text-center text-gray-400">
-            Auswertung folgt...
-        </h3>
-      </div>
+      {/* Hier wird der Auswertebogen geladen */}
+      <Auswertebogen lehrprobeId={probe.id} />
     </div>
   );
 }
