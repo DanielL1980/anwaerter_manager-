@@ -9,15 +9,12 @@ function Home() {
   const [lehrproben, setLehrproben] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Funktion zum Laden der Daten aus der DB
   const loadLehrproben = async () => {
-    // Sortiert nach Datum absteigend
     const data = await getLehrproben();
     setLehrproben(data.reverse());
-    setIsModalOpen(false); // Modal nach Erfolg schließen
+    setIsModalOpen(false);
   };
 
-  // Beim ersten Laden der Seite die Daten holen
   useEffect(() => {
     loadLehrproben();
   }, []);
@@ -25,38 +22,40 @@ function Home() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Lehrproben Übersicht</h2>
+        <h2 className="text-3xl font-bold text-slate-900">Lehrproben</h2>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow"
+          // SIEHE HIER: Wir nutzen jetzt unsere neuen Button-Klassen!
+          className="btn btn-primary"
         >
           <Plus size={20} />
           <span>Neue Lehrprobe</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-xl shadow-md overflow-hidden">
         {lehrproben.length === 0 ? (
-          <div className="text-center p-12 text-gray-500">
-             <BookOpen size={48} className="mx-auto mb-4 text-gray-400" />
+          <div className="text-center p-12 text-slate-500">
+             <BookOpen size={48} className="mx-auto mb-4 text-slate-400" />
             <p className="font-semibold">Noch keine Lehrproben angelegt.</p>
-            <p className="text-sm">Klicken Sie auf "Neue Lehrprobe", um zu beginnen.</p>
+            <p className="text-sm mt-1">Klicken Sie auf "Neue Lehrprobe", um zu beginnen.</p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-200">
+          <ul className="divide-y divide-slate-200">
             {lehrproben.map((probe) => (
               <li key={probe.id}>
-                <Link to={`/lehrprobe/${probe.id}`} className="block p-4 hover:bg-gray-50">
+                {/* Weicherer Hover-Effekt und besseres Padding */}
+                <Link to={`/lehrprobe/${probe.id}`} className="block p-5 hover:bg-slate-50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-blue-700">{probe.prüfling}</p>
-                      <p className="text-sm text-gray-600">{probe.thema}</p>
+                      <p className="font-semibold text-blue-700 text-lg">{probe.prüfling}</p>
+                      <p className="text-sm text-slate-600 mt-1">{probe.thema}</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                       <span className="text-sm text-gray-500">
+                    <div className="flex items-center gap-4">
+                       <span className="text-sm text-slate-500 font-medium">
                         {format(new Date(probe.datum), 'dd.MM.yyyy')}
                        </span>
-                      <ChevronRight size={20} className="text-gray-400" />
+                      <ChevronRight size={20} className="text-slate-400" />
                     </div>
                   </div>
                 </Link>
