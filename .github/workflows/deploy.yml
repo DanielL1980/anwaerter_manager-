@@ -1,0 +1,53 @@
+Gut! Jetzt brauchen wir noch die GitHub Actions Workflow-Datei, damit die App automatisch gebaut und auf GitHub Pages veröffentlicht wird.
+
+**Schritt 12:**
+
+1. Du bist auf der Hauptseite des Repositories
+2. Klicke auf `Add file` -> `Create new file`
+3. Tippe als Dateiname ein: `.github/workflows/deploy.yml`
+   - GitHub macht `.github/` zum Ordner, dann `workflows/` zum Unterordner, dann tippst du `deploy.yml`
+4. Füge diesen Code ein:
+
+```yaml
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: ['main']
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './dist'
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4
+```
+
+5. Scrolle nach unten und klicke `Commit changes`
+
+Jetzt müssen wir noch GitHub Pages aktivieren. Sag mir Bescheid wenn der Commit erledigt ist, dann erkläre ich dir den letzten Schritt.
