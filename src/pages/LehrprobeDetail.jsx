@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { getLehrprobe } from '../lib/db';
-import Auswertebogen from '../components/Auswertebogen'; // <-- NEU
+import Auswertebogen from '../components/Auswertebogen';
 import { ChevronLeft, User, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -37,30 +37,25 @@ function LehrprobeDetail() {
 
   return (
     <div>
-      <Link to="/" className="inline-flex items-center gap-2 text-blue-600 mb-6 hover:underline">
+      {/* Wir nutzen jetzt unsere Button-Klasse für den Zurück-Link */}
+      <Link to="/" className="btn btn-secondary mb-8 no-print">
         <ChevronLeft size={20} />
         <span>Zurück zur Übersicht</span>
       </Link>
 
-      <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-        <h2 className="text-2xl font-bold mb-4">{probe.thema}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-gray-700">
-          <div className="flex items-center gap-3">
-            <User size={20} className="text-gray-400" />
-            <span>
-              <span className="font-semibold">Prüfling:</span> {probe.prüfling}
-            </span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Calendar size={20} className="text-gray-400" />
-            <span>
-              <span className="font-semibold">Datum:</span> {format(new Date(probe.datum), 'dd.MM.yyyy')}
-            </span>
-          </div>
+      {/* Die Info-Box bekommt ein Upgrade */}
+      <div className="bg-white rounded-xl shadow-md p-6 mb-8 print-container info-box">
+        <h1 className="text-3xl font-bold text-slate-900 mb-1">{probe.thema}</h1>
+        <p className="text-lg text-slate-600 mb-4">Lehrprobe von <span className="font-semibold text-slate-800">{probe.prüfling}</span></p>
+        
+        <div className="flex items-center gap-4 text-slate-500 text-sm border-t border-slate-200 pt-4 mt-4">
+            <div className="flex items-center gap-2">
+                <Calendar size={16} />
+                <span>{format(new Date(probe.datum), 'dd. MMMM yyyy')}</span>
+            </div>
         </div>
       </div>
 
-      {/* Hier wird der Auswertebogen geladen */}
       <Auswertebogen lehrprobeId={probe.id} />
     </div>
   );
