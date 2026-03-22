@@ -61,11 +61,11 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
     }
 
     try {
-      // Das Skript wird jetzt erst bei Bedarf dynamisch geladen
       const { GoogleGenerativeAI } = await import('https://esm.run/@google/generative-ai');
       
       const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-pro"});
+      // Der neue, korrekte Modellname
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
       const prompt = erstellePrompt(durchschnitte, auswertung.notizen, lehrprobe);
 
       const result = await model.generateContent(prompt);
