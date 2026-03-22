@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import Home from './pages/Home';
-import LehrprobeDetail from './pages/LehrprobeDetail'; // <-- NEU
+import LehrprobeDetail from './pages/LehrprobeDetail';
+import Einstellungen from './pages/Einstellungen'; // <-- NEU
 
 function App() {
   return (
@@ -9,8 +10,9 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
-          {/* NEUE ROUTE FÜR DIE DETAILSEITE */}
           <Route path="/lehrprobe/:id" element={<LehrprobeDetail />} />
+          {/* NEUE ROUTE FÜR DIE EINSTELLUNGEN */}
+          <Route path="/einstellungen" element={<Einstellungen />} />
         </Route>
       </Routes>
     </BrowserRouter>
