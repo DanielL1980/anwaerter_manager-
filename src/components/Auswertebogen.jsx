@@ -3,6 +3,49 @@ import { BEWERTUNGSKRITERIEN } from '../data/kriterien';
 import { getAuswertungenForLehrprobe, addAuswertung, updateAuswertung } from '../lib/db';
 import { berechneKategorieDurchschnitte } from '../lib/berechnungen';
 import AuswertungChart from './AuswertungChart';
+import KiZusammenfassung from './KiZusammenfassung'; // <-- NEU
+import { debounce } from '../lib/utils';
+import clsx from 'clsx';
+
+// ... (der Rest der Datei bleibt gleich, hier nur gekürzt)
+
+function Auswertebogen({ lehrprobeId, lehrprobe }) { // <-- lehrprobe als prop
+  const [auswertung, setAuswertung] = useState(null);
+  const [durchschnitte, setDurchschnitte] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // ... (der Rest der Logik bleibt gleich)
+  
+  // -- Springe zum return statement --
+
+  if (loading) {
+    return <div className="text-center p-8">Lade Auswertebogen...</div>;
+  }
+
+  return (
+    <div className="space-y-8">
+      <AuswertungChart durchschnitte={durchschnitte} auswertung={auswertung} />
+      
+      {/* HIER WIRD DIE KI-KOMPONENTE EINGEFÜGT */}
+      <KiZusammenfassung auswertung={auswertung} durchschnitte={durchschnitte} lehrprobe={lehrprobe} />
+
+      {BEWERTUNGSKRITERIEN.map(kategorie => (
+        // ... (der Rest des JSX bleibt gleich)
+      ))}
+       <div className="bg-white rounded-xl shadow-md p-5 print-container">
+          {/* ... */}
+       </div>
+    </div>
+  );
+}
+
+// HIER IST DER VOLLSTÄNDIGE CODE ZUM KOPIEREN
+import { useState, useEffect, useCallback } from 'react';
+import { BEWERTUNGSKRITERIEN } from '../data/kriterien';
+import { getAuswertungenForLehrprobe, addAuswertung, updateAuswertung } from '../lib/db';
+import { berechneKategorieDurchschnitte } from '../lib/berechnungen';
+import AuswertungChart from './AuswertungChart';
+import KiZusammenfassung from './KiZusammenfassung';
 import { debounce } from '../lib/utils';
 import clsx from 'clsx';
 
@@ -14,7 +57,7 @@ const PUNKTE_SKALA = [
   { value: 1, label: 'Mangelhaft', symbol: '--' },
 ];
 
-function Auswertebogen({ lehrprobeId }) {
+function Auswertebogen({ lehrprobeId, lehrprobe }) {
   const [auswertung, setAuswertung] = useState(null);
   const [durchschnitte, setDurchschnitte] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -70,8 +113,9 @@ function Auswertebogen({ lehrprobeId }) {
 
   return (
     <div className="space-y-8">
-      {/* HIER IST DIE GEÄNDERTE ZEILE */}
       <AuswertungChart durchschnitte={durchschnitte} auswertung={auswertung} />
+      
+      <KiZusammenfassung auswertung={auswertung} durchschnitte={durchschnitte} lehrprobe={lehrprobe} />
 
       {BEWERTUNGSKRITERIEN.map(kategorie => (
         <div key={kategorie.id} className="bg-white rounded-xl shadow-md overflow-hidden print-container auswertebogen-kategorie">
