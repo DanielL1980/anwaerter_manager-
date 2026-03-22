@@ -26,7 +26,8 @@ function erstellePrompt(durchschnitte, notizen, lehrprobe) {
   - Sozialkompetenz: ${durchschnitte.sozialkompetenz?.toFixed(2) || 'N/A'}
   - Personalkompetenz: ${durchschnitte.personalkompetenz?.toFixed(2) || 'N/A'}
 
-  **2. Manuelle Notizen des Prüfers:**\n`;
+  **2. Manuelle Notizen des Prüfers:**
+`;
 
   const relevanteNotizen = Object.entries(notizen)
     .filter(([, text]) => text && text.trim() !== '')
@@ -55,26 +56,49 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
 
     const apiKey = await getEinstellung('apiKey');
     if (!apiKey) {
-      setError('Fehler: Kein API-Schlüssel in den Einstellungen gefunden. Bitte füge deinen Google AI API-Schlüssel in den Einstellungen hinzu.');
+      setError('Fehler: Kein API-Schlüssel in den Einstellungen gefunden. Bitte füge deinen Anthropic API-Schlüssel in den Einstellungen hinzu.');
       setIsLoading(false);
       return;
     }
 
     try {
-      const { GoogleGenerativeAI } = await import('https://esm.run/@google/generative-ai');
-      
-      const genAI = new GoogleGenerativeAI(apiKey);
-      // Der neue, korrekte Modellname
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
       const prompt = erstellePrompt(durchschnitte, auswertung.notizen, lehrprobe);
 
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1024,
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = errorData?.error?.message || `HTTP-Fehler ${response.status}`;
+        throw new Error(errorMsg);
+      }
+
+      const data = await response.json();
+      const text = data.content?.[0]?.text || '';
       setZusammenfassung(text);
     } catch (e) {
       console.error(e);
-      setError('Ein Fehler ist bei der Kommunikation mit der KI aufgetreten. Prüfe die Browser-Konsole (F12) für Details. Mögliche Ursachen: API-Schlüssel falsch/abgelaufen, keine Internetverbindung oder das Modell ist überlastet.');
+      setError(
+        `Ein Fehler ist bei der Kommunikation mit der KI aufgetreten: ${e.message}. ` +
+        'Prüfe die Browser-Konsole (F12) für Details. Mögliche Ursachen: API-Schlüssel falsch/abgelaufen oder keine Internetverbindung.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +127,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
 
       {zusammenfassung && (
         <div className="mt-4 p-4 bg-slate-50 border rounded-md">
-           <pre className="whitespace-pre-wrap text-slate-800 text-sm leading-relaxed font-sans">{zusammenfassung}</pre>
+          <pre className="whitespace-pre-wrap text-slate-800 text-sm leading-relaxed font-sans">{zusammenfassung}</pre>
         </div>
       )}
     </div>
