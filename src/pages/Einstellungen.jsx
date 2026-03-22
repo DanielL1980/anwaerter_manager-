@@ -33,9 +33,10 @@ function Einstellungen() {
       <h2 className="text-3xl font-bold text-slate-900 mb-6">Einstellungen</h2>
 
       <div className="bg-white p-6 rounded-xl shadow-md">
-        <h3 className="text-xl font-bold text-slate-800">Google AI API Schlüssel</h3>
+        <h3 className="text-xl font-bold text-slate-800">Anthropic API Schlüssel (Claude)</h3>
         <p className="text-sm text-slate-600 mt-1 mb-4">
           Dein Schlüssel wird benötigt, um die KI-Zusammenfassungen zu generieren. Er wird nur sicher und lokal in deinem Browser gespeichert.
+          Du kannst einen API-Schlüssel unter <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">console.anthropic.com</a> erstellen.
         </p>
 
         <div className="flex gap-2">
@@ -43,7 +44,7 @@ function Einstellungen() {
             type={showApiKey ? 'text' : 'password'}
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Deinen API-Schlüssel hier einfügen"
+            placeholder="sk-ant-... (Anthropic API-Schlüssel)"
             className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
           />
           <button 
