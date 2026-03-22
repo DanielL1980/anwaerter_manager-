@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { BEWERTUNGSKRITERIEN } from '../data/kriterien';
 import { getAuswertungenForLehrprobe, addAuswertung, updateAuswertung } from '../lib/db';
-import { berechneKategorieDurchschnitte } from '../lib/berechnungen'; // <-- NEU: Berechnungs-Helfer importieren
-import AuswertungChart from './AuswertungChart'; // <-- NEU: Chart-Komponente importieren
+import { berechneKategorieDurchschnitte } from '../lib/berechnungen';
+import AuswertungChart from './AuswertungChart';
 import { debounce } from '../lib/utils';
 import clsx from 'clsx';
 
@@ -16,7 +16,7 @@ const PUNKTE_SKALA = [
 
 function Auswertebogen({ lehrprobeId }) {
   const [auswertung, setAuswertung] = useState(null);
-  const [durchschnitte, setDurchschnitte] = useState(null); // <-- NEU: State für die Durchschnittswerte
+  const [durchschnitte, setDurchschnitte] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const debouncedSave = useCallback(
@@ -39,7 +39,6 @@ function Auswertebogen({ lehrprobeId }) {
       const existing = await getAuswertungenForLehrprobe(lehrprobeId);
       const currentAuswertung = existing[0] || { punkte: {}, notizen: {}, gesamtnote: '' };
       setAuswertung(currentAuswertung);
-      // Berechne die Durchschnitte direkt nach dem Laden
       setDurchschnitte(berechneKategorieDurchschnitte(currentAuswertung));
       setLoading(false);
     };
@@ -49,7 +48,6 @@ function Auswertebogen({ lehrprobeId }) {
   useEffect(() => {
     if (auswertung && !loading) {
       debouncedSave(auswertung);
-      // Berechne die Durchschnitte bei jeder Änderung neu
       setDurchschnitte(berechneKategorieDurchschnitte(auswertung));
     }
   }, [auswertung, loading, debouncedSave]);
@@ -72,8 +70,8 @@ function Auswertebogen({ lehrprobeId }) {
 
   return (
     <div className="space-y-8">
-      {/* HIER WIRD DAS DIAGRAMM EINGEFÜGT */}
-      <AuswertungChart durchschnitte={durchschnitte} />
+      {/* HIER IST DIE GEÄNDERTE ZEILE */}
+      <AuswertungChart durchschnitte={durchschnitte} auswertung={auswertung} />
 
       {BEWERTUNGSKRITERIEN.map(kategorie => (
         <div key={kategorie.id} className="bg-white rounded-xl shadow-md overflow-hidden print-container auswertebogen-kategorie">
