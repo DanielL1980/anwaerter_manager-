@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { getEinstellung } from '../lib/db';
 import { Wand, Loader, AlertTriangle } from 'lucide-react';
 
-// Das ist der Kern-Prompt, der der KI sagt, was sie tun soll.
 function erstellePrompt(durchschnitte, notizen, lehrprobe) {
   let promptText = `Du bist ein erfahrener Ausbildungsfahrlehrer. Deine Aufgabe ist es, eine faire, konstruktive und gut strukturierte schriftliche Zusammenfassung einer Lehrprobe zu erstellen. Diese Zusammenfassung dient als Grundlage für das Feedbackgespräch mit dem Fahrlehreranwärter.
 
@@ -29,10 +28,9 @@ function erstellePrompt(durchschnitte, notizen, lehrprobe) {
 
   **2. Manuelle Notizen des Prüfers:**\n`;
 
-  // Füge nur Notizen hinzu, die auch Inhalt haben
   const relevanteNotizen = Object.entries(notizen)
     .filter(([, text]) => text && text.trim() !== '')
-    .map(([key, text]) => `- Notiz zu "${key.replace('_', ' ')}": ${text}`)
+    .map(([key, text]) => `- Notiz zu "${key.replace(/_/g, ' ')}": ${text}`)
     .join('\n');
 
   if (relevanteNotizen) {
@@ -61,16 +59,12 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
       setIsLoading(false);
       return;
     }
-    
-    // Wir greifen auf die Google AI SDK zu, die wir extern laden
-    if (!window.google.generativeAI) {
-      setError('Fehler: Google AI SDK konnte nicht geladen werden.');
-      setIsLoading(false);
-      return;
-    }
 
     try {
-      const genAI = new window.google.generativeAI.GoogleGenerativeAI(apiKey);
+      // Das Skript wird jetzt erst bei Bedarf dynamisch geladen
+      const { GoogleGenerativeAI } = await import('https://esm.run/@google/generative-ai');
+      
+      const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-pro"});
       const prompt = erstellePrompt(durchschnitte, auswertung.notizen, lehrprobe);
 
@@ -80,7 +74,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
       setZusammenfassung(text);
     } catch (e) {
       console.error(e);
-      setError('Ein Fehler ist bei der Kommunikation mit der KI aufgetreten. Bitte überprüfe deinen API-Schlüssel und deine Internetverbindung.');
+      setError('Ein Fehler ist bei der Kommunikation mit der KI aufgetreten. Prüfe die Browser-Konsole (F12) für Details. Mögliche Ursachen: API-Schlüssel falsch/abgelaufen, keine Internetverbindung oder das Modell ist überlastet.');
     } finally {
       setIsLoading(false);
     }
