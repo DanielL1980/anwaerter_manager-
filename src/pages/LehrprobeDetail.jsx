@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getLehrprobe, deleteLehrprobe } from '../lib/db'; // deleteLehrprobe importieren
+import { getLehrprobe, deleteLehrprobe } from '../lib/db';
 import Auswertebogen from '../components/Auswertebogen';
-import ConfirmDeleteModal from '../components/ConfirmDeleteModal'; // Modal importieren
-import { ChevronLeft, User, Calendar, Printer, Trash2 } from 'lucide-react'; // Trash2-Icon importieren
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
+import KiZusammenfassung from '../components/KiZusammenfassung'; // <-- NEU
+import { ChevronLeft, User, Calendar, Printer, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import '../print.css';
 
 function LehrprobeDetail() {
   const { id } = useParams();
-  const navigate = useNavigate(); // Hook für die Weiterleitung nach dem Löschen
+  const navigate = useNavigate();
   const [probe, setProbe] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // State für das Modal
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchProbe = async () => {
@@ -28,10 +29,9 @@ function LehrprobeDetail() {
     window.print();
   };
   
-  // Funktion zum Löschen
   const handleDelete = async () => {
     await deleteLehrprobe(id);
-    navigate('/'); // Nach dem Löschen zur Startseite zurückkehren
+    navigate('/');
   };
 
   if (loading) {
@@ -61,7 +61,6 @@ function LehrprobeDetail() {
             <Printer size={20} />
             <span>Drucken / PDF</span>
           </button>
-          {/* NEUER LÖSCHEN-BUTTON */}
           <button onClick={() => setIsDeleteModalOpen(true)} className="btn bg-red-100 text-red-700 hover:bg-red-200 focus:ring-red-500">
             <Trash2 size={20} />
           </button>
@@ -80,9 +79,9 @@ function LehrprobeDetail() {
         </div>
       </div>
 
-      <Auswertebogen lehrprobeId={probe.id} />
+      {/* Die KI Komponente wird jetzt im Auswertebogen gerendert, damit sie Zugriff auf die Daten hat */}
+      <Auswertebogen lehrprobeId={probe.id} lehrprobe={probe} />
       
-      {/* Das Modal wird hier eingebunden und gesteuert */}
       <ConfirmDeleteModal 
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
