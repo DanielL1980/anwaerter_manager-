@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // <-- NEU
 import { getEinstellung, setEinstellung } from '../lib/db';
 import { Save, Eye, EyeOff } from 'lucide-react';
 
@@ -6,8 +7,8 @@ function Einstellungen() {
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
+  const navigate = useNavigate(); // <-- NEU
 
-  // Beim Laden der Seite den gespeicherten Schlüssel aus der DB holen
   useEffect(() => {
     const loadKey = async () => {
       const gespeicherterKey = await getEinstellung('apiKey');
@@ -20,9 +21,11 @@ function Einstellungen() {
 
   const handleSave = async () => {
     await setEinstellung('apiKey', apiKey);
-    setStatusMsg('API-Schlüssel erfolgreich gespeichert!');
-    // Nachricht nach 3 Sekunden ausblenden
-    setTimeout(() => setStatusMsg(''), 3000);
+    setStatusMsg('API-Schlüssel erfolgreich gespeichert! Leite weiter...');
+    // Nach 2 Sekunden zur Startseite weiterleiten
+    setTimeout(() => {
+      navigate('/');
+    }, 2000); // <-- NEU
   };
 
   return (
