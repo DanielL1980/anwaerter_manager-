@@ -34,15 +34,9 @@ function erstellePrompt(durchschnitte, notizen, lehrprobe) {
     .map(([key, text]) => `- Notiz zu "${key.replace(/_/g, ' ')}": ${text}`)
     .join('\n');
 
-  if (relevanteNotizen) {
-    promptText += relevanteNotizen;
-  } else {
-    promptText += '- Keine spezifischen Notizen vorhanden.';
-  }
-
+  promptText += relevanteNotizen || '- Keine spezifischen Notizen vorhanden.';
   return promptText;
 }
-
 
 function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
   const [zusammenfassung, setZusammenfassung] = useState('');
@@ -56,7 +50,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
 
     const apiKey = await getEinstellung('apiKey');
     if (!apiKey) {
-      setError('Fehler: Kein API-Schlüssel in den Einstellungen gefunden. Bitte füge deinen Anthropic API-Schlüssel in den Einstellungen hinzu.');
+      setError('Fehler: Kein API-Schlüssel gefunden. Bitte füge deinen Google AI API-Schlüssel in den Einstellungen hinzu.');
       setIsLoading(false);
       return;
     }
@@ -64,41 +58,33 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
     try {
       const prompt = erstellePrompt(durchschnitte, auswertung.notizen, lehrprobe);
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1024,
-          messages: [
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-        }),
-      });
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { maxOutputTokens: 1500 }
+          }),
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMsg = errorData?.error?.message || `HTTP-Fehler ${response.status}`;
-        throw new Error(errorMsg);
+        const errData = await response.json().catch(() => ({}));
+        const msg = errData?.error?.message || `HTTP ${response.status}`;
+        throw new Error(msg);
       }
 
       const data = await response.json();
-      const text = data.content?.[0]?.text || '';
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+      if (!text) throw new Error('Keine Antwort von der KI erhalten.');
       setZusammenfassung(text);
+
     } catch (e) {
       console.error(e);
-      setError(
-        `Ein Fehler ist bei der Kommunikation mit der KI aufgetreten: ${e.message}. ` +
-        'Prüfe die Browser-Konsole (F12) für Details. Mögliche Ursachen: API-Schlüssel falsch/abgelaufen oder keine Internetverbindung.'
-      );
+      setError(`Fehler bei der KI-Anfrage: ${e.message}. Bitte prüfe deinen Google AI API-Schlüssel in den Einstellungen.`);
     } finally {
       setIsLoading(false);
     }
@@ -109,11 +95,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
       <div className="flex justify-between items-center">
         <h3 className="text-xl font-bold text-slate-800">KI-gestützte Zusammenfassung</h3>
         <button onClick={handleGenerate} disabled={isLoading} className="btn btn-primary">
-          {isLoading ? (
-            <Loader size={20} className="animate-spin" />
-          ) : (
-            <Wand size={20} />
-          )}
+          {isLoading ? <Loader size={20} className="animate-spin" /> : <Wand size={20} />}
           <span>{isLoading ? 'Generiere...' : 'Zusammenfassung erstellen'}</span>
         </button>
       </div>
