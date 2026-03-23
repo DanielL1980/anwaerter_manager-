@@ -93,7 +93,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 1500 }
+            generationConfig: { maxOutputTokens: 8000 }
           }),
         }
       );
