@@ -4,24 +4,27 @@
 
 @layer base {
   body {
-    /* Ein weicheres, professionelleres Hintergrundgrau */
-    @apply bg-slate-100 text-slate-800 antialiased;
+    @apply bg-slate-50 text-slate-800 antialiased;
   }
-  /* Bessere Schriftart für Lesbarkeit */
   html {
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   }
 }
 
 @layer components {
-  /* Wir definieren wiederverwendbare Button-Stile */
   .btn {
-    @apply inline-flex items-center gap-2 rounded-md px-4 py-2 font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2;
+    @apply inline-flex items-center gap-2 rounded-lg px-4 py-2.5 font-semibold shadow-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 active:scale-95;
   }
   .btn-primary {
-    @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+    @apply bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500 shadow-indigo-200 shadow-md;
   }
   .btn-secondary {
-    @apply bg-slate-200 text-slate-800 hover:bg-slate-300 focus:ring-slate-400;
+    @apply bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 focus:ring-slate-400 shadow-sm;
+  }
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-slate-100;
+  }
+  .input-field {
+    @apply w-full px-4 py-2.5 border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition bg-white;
   }
 }
