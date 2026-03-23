@@ -85,15 +85,15 @@ export async function setEinstellung(key, value) {
   return db.put('einstellungen', { key, value });
 }
 
-export async function getGesprächsnotizForLehrprobe(lehrprobeId) {
+export async function getGespraechsnotizForLehrprobe(lehrprobeId) {
   const db = await initDB();
   const notizen = await db.getAllFromIndex('gespraechsnotizen', 'lehrprobeId', lehrprobeId);
   return notizen[0] || null;
 }
 
-export async function saveGesprächsnotiz(lehrprobeId, text) {
+export async function saveGespraechsnotiz(lehrprobeId, text) {
   const db = await initDB();
-  const existing = await getGesprächsnotizForLehrprobe(lehrprobeId);
+  const existing = await getGespraechsnotizForLehrprobe(lehrprobeId);
   if (existing) {
     return db.put('gespraechsnotizen', { ...existing, text, aktualisiertAm: new Date().toISOString() });
   } else {
