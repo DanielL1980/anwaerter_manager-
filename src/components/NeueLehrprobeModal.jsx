@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { addLehrprobe } from '../lib/db';
-import { X, User, BookOpen, Calendar } from 'lucide-react';
+import { X, User, BookOpen, Calendar, Car, GraduationCap } from 'lucide-react';
 import { format } from 'date-fns';
 
 function NeueLehrprobeModal({ isOpen, onClose, onLehrprobeAdded }) {
+  const [typ, setTyp] = useState('theorie');
   const [prüfling, setPrüfling] = useState('');
   const [thema, setThema] = useState('');
   const [datum, setDatum] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -19,6 +20,7 @@ function NeueLehrprobeModal({ isOpen, onClose, onLehrprobeAdded }) {
     }
     const neueLehrprobe = {
       id: crypto.randomUUID(),
+      typ,
       prüfling,
       thema,
       datum,
@@ -30,6 +32,7 @@ function NeueLehrprobeModal({ isOpen, onClose, onLehrprobeAdded }) {
   };
 
   const handleClose = () => {
+    setTyp('theorie');
     setPrüfling('');
     setThema('');
     setDatum(format(new Date(), 'yyyy-MM-dd'));
@@ -40,63 +43,69 @@ function NeueLehrprobeModal({ isOpen, onClose, onLehrprobeAdded }) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative overflow-hidden">
-        {/* Modal-Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-5 text-white">
           <button onClick={handleClose} className="absolute top-4 right-4 text-white/70 hover:text-white transition">
             <X size={22} />
           </button>
-          <h2 className="text-xl font-bold">Neue Lehrprobe</h2>
-          <p className="text-indigo-200 text-sm mt-0.5">Angaben zur Lehrprobe eintragen</p>
+          <h2 className="text-xl font-bold">Neue Auswertung anlegen</h2>
+          <p className="text-indigo-200 text-sm mt-0.5">Typ und Angaben eintragen</p>
         </div>
 
-        {/* Modal-Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Typ-Auswahl */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Art der Auswertung</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button type="button" onClick={() => setTyp('theorie')}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  typ === 'theorie'
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                }`}>
+                <GraduationCap size={24} />
+                <span className="text-xs font-semibold text-center leading-tight">Auswertebogen Theoretischer Unterricht</span>
+              </button>
+              <button type="button" onClick={() => setTyp('fahrstunde')}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  typ === 'fahrstunde'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                }`}>
+                <Car size={24} />
+                <span className="text-xs font-semibold text-center leading-tight">Auswertebogen Fahrstunden</span>
+              </button>
+            </div>
+          </div>
+
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              <span className="flex items-center gap-2"><User size={15} /> Name des Prüflings</span>
+              <span className="flex items-center gap-2"><User size={15} /> Name des Anwärters</span>
             </label>
-            <input
-              type="text"
-              value={prüfling}
-              onChange={(e) => setPrüfling(e.target.value)}
-              className="input-field"
-              placeholder="z.B. Schmidt Jennifer"
-              autoFocus
-            />
+            <input type="text" value={prüfling} onChange={(e) => setPrüfling(e.target.value)}
+              className="input-field" placeholder="z.B. Schmidt Jennifer" autoFocus />
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-              <span className="flex items-center gap-2"><BookOpen size={15} /> Thema der Lehrprobe</span>
+              <span className="flex items-center gap-2"><BookOpen size={15} />
+                {typ === 'theorie' ? 'Thema des Unterrichts' : 'Thema / Fahraufgabe'}
+              </span>
             </label>
-            <input
-              type="text"
-              value={thema}
-              onChange={(e) => setThema(e.target.value)}
+            <input type="text" value={thema} onChange={(e) => setThema(e.target.value)}
               className="input-field"
-              placeholder="z.B. Andere Verkehrsteilnehmer"
-            />
+              placeholder={typ === 'theorie' ? 'z.B. Andere Verkehrsteilnehmer' : 'z.B. Einparken, Kurvenfahren'} />
           </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">
               <span className="flex items-center gap-2"><Calendar size={15} /> Datum</span>
             </label>
-            <input
-              type="date"
-              value={datum}
-              onChange={(e) => setDatum(e.target.value)}
-              className="input-field"
-            />
+            <input type="date" value={datum} onChange={(e) => setDatum(e.target.value)} className="input-field" />
           </div>
 
           {error && <p className="text-red-500 text-sm bg-red-50 px-4 py-2 rounded-lg">{error}</p>}
 
           <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={handleClose} className="btn btn-secondary">
-              Abbrechen
-            </button>
-            <button type="submit" className="btn btn-primary">
-              Lehrprobe anlegen
-            </button>
+            <button type="button" onClick={handleClose} className="btn btn-secondary">Abbrechen</button>
+            <button type="submit" className="btn btn-primary">Auswertung anlegen</button>
           </div>
         </form>
       </div>
