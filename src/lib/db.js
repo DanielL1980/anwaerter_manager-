@@ -106,3 +106,34 @@ export async function saveGespraechsnotiz(lehrprobeId, text) {
     });
   }
 }
+
+// =================== BACKUP / RESTORE ===================
+
+export async function exportiereAllesDaten() {
+  const db = await initDB();
+  const lehrproben = await db.getAll('lehrproben');
+  const auswertungen = await db.getAll('auswertungen');
+  const einstellungen = await db.getAll('einstellungen');
+  const gespraechsnotizen = await db.getAll('gespraechsnotizen');
+  return {
+    version: 1,
+    exportiertAm: new Date().toISOString(),
+    lehrproben,
+    auswertungen,
+    einstellungen,
+    gespraechsnotizen,
+  };
+}
+
+export async function importiereDaten(backup) {
+  const db = await initDB();
+  const tx = db.transaction(
+    ['lehrproben', 'auswertungen', 'einstellungen', 'gespraechsnotizen'],
+    'readwrite'
+  );
+  for (const item of (backup.lehrproben || [])) await tx.objectStore('lehrproben').put(item);
+  for (const item of (backup.auswertungen || [])) await tx.objectStore('auswertungen').put(item);
+  for (const item of (backup.einstellungen || [])) await tx.objectStore('einstellungen').put(item);
+  for (const item of (backup.gespraechsnotizen || [])) await tx.objectStore('gespraechsnotizen').put(item);
+  await tx.done;
+}
