@@ -20,8 +20,8 @@ async function initDB() {
         }
       }
       if (oldVersion < 2) {
-        if (!db.objectStoreNames.contains('gesprächsnotizen')) {
-          const store = db.createObjectStore('gesprächsnotizen', { keyPath: 'id' });
+        if (!db.objectStoreNames.contains('gespraechsnotizen')) {
+          const store = db.createObjectStore('gespraechsnotizen', { keyPath: 'id' });
           store.createIndex('lehrprobeId', 'lehrprobeId');
         }
       }
@@ -87,7 +87,7 @@ export async function setEinstellung(key, value) {
 
 export async function getGesprächsnotizForLehrprobe(lehrprobeId) {
   const db = await initDB();
-  const notizen = await db.getAllFromIndex('gesprächsnotizen', 'lehrprobeId', lehrprobeId);
+  const notizen = await db.getAllFromIndex('gespraechsnotizen', 'lehrprobeId', lehrprobeId);
   return notizen[0] || null;
 }
 
@@ -95,9 +95,9 @@ export async function saveGesprächsnotiz(lehrprobeId, text) {
   const db = await initDB();
   const existing = await getGesprächsnotizForLehrprobe(lehrprobeId);
   if (existing) {
-    return db.put('gesprächsnotizen', { ...existing, text, aktualisiertAm: new Date().toISOString() });
+    return db.put('gespraechsnotizen', { ...existing, text, aktualisiertAm: new Date().toISOString() });
   } else {
-    return db.add('gesprächsnotizen', {
+    return db.add('gespraechsnotizen', {
       id: crypto.randomUUID(),
       lehrprobeId,
       text,
