@@ -1,16 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getGesprächsnotizForLehrprobe, saveGesprächsnotiz } from '../lib/db';
+import { getGespraechsnotizForLehrprobe, saveGespraechsnotiz } from '../lib/db';
 import { MessageSquare, CheckCircle } from 'lucide-react';
 import { debounce } from '../lib/utils';
 
-function GesprächsnotizBlock({ lehrprobeId }) {
+function GespraechsnotizBlock({ lehrprobeId }) {
   const [text, setText] = useState('');
   const [gespeichert, setGespeichert] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const laden = async () => {
-      const notiz = await getGesprächsnotizForLehrprobe(lehrprobeId);
+      const notiz = await getGespraechsnotizForLehrprobe(lehrprobeId);
       if (notiz) setText(notiz.text);
       setLoading(false);
     };
@@ -19,7 +19,7 @@ function GesprächsnotizBlock({ lehrprobeId }) {
 
   const debouncedSave = useCallback(
     debounce(async (value) => {
-      await saveGesprächsnotiz(lehrprobeId, value);
+      await saveGespraechsnotiz(lehrprobeId, value);
       setGespeichert(true);
       setTimeout(() => setGespeichert(false), 2000);
     }, 600),
@@ -38,7 +38,7 @@ function GesprächsnotizBlock({ lehrprobeId }) {
       <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-5 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2 text-white">
           <MessageSquare size={18} />
-          <h3 className="font-bold">Gesprächsnotizen</h3>
+          <h3 className="font-bold">Gespraechsnotizen</h3>
         </div>
         {gespeichert && (
           <div className="flex items-center gap-1.5 text-emerald-300 text-xs font-medium">
