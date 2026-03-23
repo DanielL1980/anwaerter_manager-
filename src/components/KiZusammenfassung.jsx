@@ -38,15 +38,43 @@ function erstellePrompt(durchschnitte, notizen, lehrprobe) {
   return promptText;
 }
 
+function oeffneZusammenfassungInTab(text, lehrprobe) {
+  const html = `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zusammenfassung – ${lehrprobe.prüfling}</title>
+  <style>
+    body { font-family: Georgia, serif; max-width: 800px; margin: 60px auto; padding: 0 30px; color: #1e293b; line-height: 1.8; }
+    h1 { font-size: 1.6rem; color: #0f172a; margin-bottom: 4px; }
+    .meta { color: #64748b; font-size: 0.95rem; margin-bottom: 40px; }
+    .inhalt { white-space: pre-wrap; font-size: 1rem; }
+    .drucken { position: fixed; top: 20px; right: 20px; background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
+    .drucken:hover { background: #1d4ed8; }
+    @media print { .drucken { display: none; } }
+  </style>
+</head>
+<body>
+  <button class="drucken" onclick="window.print()">🖨️ Drucken / PDF</button>
+  <h1>KI-Zusammenfassung: ${lehrprobe.thema}</h1>
+  <p class="meta">Lehrprobe von ${lehrprobe.prüfling}</p>
+  <div class="inhalt">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+}
+
 function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
-  const [zusammenfassung, setZusammenfassung] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleGenerate = async () => {
     setIsLoading(true);
     setError('');
-    setZusammenfassung('');
 
     const apiKey = await getEinstellung('apiKey');
     if (!apiKey) {
@@ -80,7 +108,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
       if (!text) throw new Error('Keine Antwort von der KI erhalten.');
-      setZusammenfassung(text);
+      oeffneZusammenfassungInTab(text, lehrprobe);
 
     } catch (e) {
       console.error(e);
@@ -93,7 +121,10 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
   return (
     <div className="bg-white rounded-xl shadow-md p-5 print-container">
       <div className="flex justify-between items-center">
-        <h3 className="text-xl font-bold text-slate-800">KI-gestützte Zusammenfassung</h3>
+        <div>
+          <h3 className="text-xl font-bold text-slate-800">KI-gestützte Zusammenfassung</h3>
+          <p className="text-sm text-slate-500 mt-1">Die Zusammenfassung wird in einem neuen Tab geöffnet.</p>
+        </div>
         <button onClick={handleGenerate} disabled={isLoading} className="btn btn-primary">
           {isLoading ? <Loader size={20} className="animate-spin" /> : <Wand size={20} />}
           <span>{isLoading ? 'Generiere...' : 'Zusammenfassung erstellen'}</span>
@@ -104,12 +135,6 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
         <div className="mt-4 p-4 bg-red-100 text-red-800 border border-red-200 rounded-md flex gap-3">
           <AlertTriangle size={20} className="flex-shrink-0" />
           <p className="text-sm">{error}</p>
-        </div>
-      )}
-
-      {zusammenfassung && (
-        <div className="mt-4 p-4 bg-slate-50 border rounded-md overflow-y-auto max-h-96">
-          <pre className="whitespace-pre-wrap text-slate-800 text-sm leading-relaxed font-sans">{zusammenfassung}</pre>
         </div>
       )}
     </div>
