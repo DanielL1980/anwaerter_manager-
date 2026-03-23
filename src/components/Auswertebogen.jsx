@@ -15,6 +15,14 @@ const PUNKTE_SKALA = [
   { value: 1, label: 'Mangelhaft', symbol: '--' },
 ];
 
+const SKALA_FARBEN = {
+  5: 'border-emerald-400 bg-emerald-500 text-white shadow-emerald-200',
+  4: 'border-blue-400 bg-blue-500 text-white shadow-blue-200',
+  3: 'border-amber-400 bg-amber-400 text-white shadow-amber-200',
+  2: 'border-orange-400 bg-orange-500 text-white shadow-orange-200',
+  1: 'border-red-400 bg-red-500 text-white shadow-red-200',
+};
+
 function Auswertebogen({ lehrprobeId, lehrprobe }) {
   const [auswertung, setAuswertung] = useState(null);
   const [durchschnitte, setDurchschnitte] = useState(null);
@@ -54,43 +62,39 @@ function Auswertebogen({ lehrprobeId, lehrprobe }) {
   }, [auswertung, loading, debouncedSave]);
 
   const handlePunkteChange = (kriteriumId, value) => {
-    setAuswertung(prev => ({ ...prev, punkte: { ...prev.punkte, [kriteriumId]: value }}));
+    setAuswertung(prev => ({ ...prev, punkte: { ...prev.punkte, [kriteriumId]: value } }));
   };
 
   const handleNotizChange = (kriteriumId, text) => {
-     setAuswertung(prev => ({ ...prev, notizen: { ...prev.notizen, [kriteriumId]: text }}));
+    setAuswertung(prev => ({ ...prev, notizen: { ...prev.notizen, [kriteriumId]: text } }));
   };
-  
+
   const handleGesamtnoteChange = (text) => {
     setAuswertung(prev => ({ ...prev, gesamtnote: text }));
-  }
+  };
 
-  if (loading) {
-    return <div className="text-center p-8">Lade Auswertebogen...</div>;
-  }
+  if (loading) return <div className="text-center p-8 text-slate-500">Lade Auswertebogen...</div>;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <AuswertungChart durchschnitte={durchschnitte} auswertung={auswertung} />
-      
+
       {auswertung && durchschnitte && lehrprobe && (
-        <KiZusammenfassung 
-          auswertung={auswertung} 
-          durchschnitte={durchschnitte} 
-          lehrprobe={lehrprobe} 
-        />
+        <KiZusammenfassung auswertung={auswertung} durchschnitte={durchschnitte} lehrprobe={lehrprobe} />
       )}
 
       {BEWERTUNGSKRITERIEN.map(kategorie => (
-        <div key={kategorie.id} className="bg-white rounded-xl shadow-md overflow-hidden print-container auswertebogen-kategorie">
-          <h3 className="text-xl font-bold p-5 bg-slate-50 border-b border-slate-200 text-slate-800">{kategorie.titel}</h3>
-          <div className="divide-y divide-slate-200">
+        <div key={kategorie.id} className="card overflow-hidden print-container auswertebogen-kategorie">
+          <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-5 py-4">
+            <h3 className="text-base font-bold text-white">{kategorie.titel}</h3>
+          </div>
+          <div className="divide-y divide-slate-100">
             {kategorie.punkte.map(punkt => {
               const kriteriumId = `${kategorie.id}_${punkt.id}`;
               const bewertung = auswertung?.punkte?.[kriteriumId];
               return (
                 <div key={kriteriumId} className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                  <p className="font-semibold text-slate-800 self-center">{punkt.text}</p>
+                  <p className="font-medium text-slate-700 self-center">{punkt.text}</p>
                   <div>
                     <div className="flex flex-wrap gap-2 radio-container-print">
                       {PUNKTE_SKALA.map(skala => (
@@ -104,24 +108,28 @@ function Auswertebogen({ lehrprobeId, lehrprobe }) {
                             className="sr-only peer"
                           />
                           <div className={clsx(
-                            'px-3 py-1.5 border rounded-full text-sm font-semibold transition-colors',
+                            'px-3 py-1.5 border-2 rounded-xl text-sm font-bold transition-all duration-150 shadow-sm',
                             bewertung === skala.value
-                              ? 'bg-blue-600 text-white border-blue-600'
-                              : 'bg-white text-slate-600 hover:bg-slate-100 border-slate-300'
+                              ? SKALA_FARBEN[skala.value]
+                              : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
                           )}>
                             {skala.symbol}
                           </div>
                         </label>
                       ))}
                     </div>
-                     {bewertung && <p className="radio-print-label">{PUNKTE_SKALA.find(s => s.value === bewertung)?.label}</p>}
+                    {bewertung && (
+                      <p className="text-xs mt-1.5 font-semibold text-slate-500 radio-print-label">
+                        {PUNKTE_SKALA.find(s => s.value === bewertung)?.label}
+                      </p>
+                    )}
                     <textarea
                       value={auswertung?.notizen?.[kriteriumId] || ''}
                       onChange={(e) => handleNotizChange(kriteriumId, e.target.value)}
                       placeholder="Notizen..."
-                      className="w-full mt-3 p-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 transition"
+                      className="w-full mt-3 p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition bg-slate-50 placeholder-slate-400"
                       rows="2"
-                    ></textarea>
+                    />
                   </div>
                 </div>
               );
@@ -129,16 +137,17 @@ function Auswertebogen({ lehrprobeId, lehrprobe }) {
           </div>
         </div>
       ))}
-       <div className="bg-white rounded-xl shadow-md p-5 print-container">
-          <h3 className="text-xl font-bold mb-3 text-slate-800">Gesamteindruck & Note</h3>
-           <textarea
-              value={auswertung?.gesamtnote || ''}
-              onChange={(e) => handleGesamtnoteChange(e.target.value)}
-              placeholder="Zusammenfassende Bemerkungen, Empfehlungen und Note eintragen..."
-              className="w-full p-2 border border-slate-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 transition"
-              rows="5"
-            ></textarea>
-       </div>
+
+      <div className="card p-5 print-container">
+        <h3 className="text-base font-bold mb-3 text-slate-800">Gesamteindruck & Note</h3>
+        <textarea
+          value={auswertung?.gesamtnote || ''}
+          onChange={(e) => handleGesamtnoteChange(e.target.value)}
+          placeholder="Zusammenfassende Bemerkungen, Empfehlungen und Note eintragen..."
+          className="w-full p-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition bg-slate-50 placeholder-slate-400"
+          rows="5"
+        />
+      </div>
     </div>
   );
 }
