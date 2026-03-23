@@ -92,6 +92,13 @@ function LehrprobeDetail() {
         <div className={`px-6 py-3 ${istFahrstunde ? 'bg-blue-50 border-blue-100' : 'bg-indigo-50 border-indigo-100'} border-t flex items-center gap-2 text-sm font-medium ${istFahrstunde ? 'text-blue-700' : 'text-indigo-700'}`}>
           <Calendar size={15} />
           <span>{format(new Date(probe.datum), 'EEEE, dd. MMMM yyyy', { locale: de })}</span>
+          {probe.zeitVon && probe.zeitBis && (
+            <>
+              <span className="mx-1">·</span>
+              <span>{probe.zeitVon} – {probe.zeitBis} Uhr</span>
+              {(() => { const min = (parseInt(probe.zeitBis.split(":")[0])*60+parseInt(probe.zeitBis.split(":")[1]))-(parseInt(probe.zeitVon.split(":")[0])*60+parseInt(probe.zeitVon.split(":")[1])); const diff = 45-min; return <span className="ml-1 font-bold">({min} Min.{diff !== 0 ? ` / Diff: ${diff > 0 ? "+" : ""}${-diff} Min.` : " ✓"})</span>; })()}
+            </>
+          )}
         </div>
       </div>
 
