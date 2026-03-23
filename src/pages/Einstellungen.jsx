@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEinstellung, setEinstellung } from '../lib/db';
-import { Save, Eye, EyeOff } from 'lucide-react';
+import { Save, Eye, EyeOff, Key, CheckCircle } from 'lucide-react';
 
 function Einstellungen() {
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
-  const [statusMsg, setStatusMsg] = useState('');
+  const [saved, setSaved] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,44 +19,71 @@ function Einstellungen() {
 
   const handleSave = async () => {
     await setEinstellung('apiKey', apiKey);
-    setStatusMsg('API-Schlüssel erfolgreich gespeichert! Leite weiter...');
+    setSaved(true);
     setTimeout(() => navigate('/'), 2000);
   };
 
   return (
-    <div>
-      <h2 className="text-3xl font-bold text-slate-900 mb-6">Einstellungen</h2>
+    <div className="max-w-xl mx-auto">
+      <h2 className="text-3xl font-bold text-slate-900 mb-2">Einstellungen</h2>
+      <p className="text-slate-500 mb-8">API-Schlüssel und App-Konfiguration</p>
 
-      <div className="bg-white p-6 rounded-xl shadow-md">
-        <h3 className="text-xl font-bold text-slate-800">Google AI API Schlüssel</h3>
-        <p className="text-sm text-slate-600 mt-1 mb-4">
-          Dein Schlüssel wird benötigt, um die KI-Zusammenfassungen zu generieren. Er wird nur sicher und lokal in deinem Browser gespeichert.
-          Einen kostenlosen Schlüssel bekommst du unter <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">aistudio.google.com/apikey</a>.
-        </p>
-
-        <div className="flex gap-2">
-          <input
-            type={showApiKey ? 'text' : 'password'}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Deinen Google AI API-Schlüssel hier einfügen"
-            className="w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          />
-          <button
-            onClick={() => setShowApiKey(!showApiKey)}
-            className="btn btn-secondary px-3"
-            aria-label="API-Schlüssel anzeigen/verbergen"
-          >
-            {showApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
-          </button>
+      <div className="card overflow-hidden">
+        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-5 text-white">
+          <div className="flex items-center gap-3">
+            <div className="bg-white/20 rounded-xl p-2">
+              <Key size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg">Google AI API Schlüssel</h3>
+              <p className="text-indigo-200 text-sm">Für die KI-gestützte Analyse</p>
+            </div>
+          </div>
         </div>
 
-        <div className="mt-4 flex justify-between items-center">
-          {statusMsg && <p className="text-green-600 font-semibold text-sm">{statusMsg}</p>}
-          <button onClick={handleSave} className="btn btn-primary ml-auto">
-            <Save size={20} />
-            <span>Speichern</span>
-          </button>
+        <div className="p-6">
+          <p className="text-sm text-slate-600 mb-4">
+            Deinen kostenlosen Schlüssel bekommst du unter{' '}
+            <a
+              href="https://aistudio.google.com/apikey"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-indigo-600 hover:underline font-medium"
+            >
+              aistudio.google.com/apikey
+            </a>
+            . Er wird nur lokal in deinem Browser gespeichert.
+          </p>
+
+          <div className="flex gap-2">
+            <input
+              type={showApiKey ? 'text' : 'password'}
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="AIza..."
+              className="input-field"
+            />
+            <button
+              onClick={() => setShowApiKey(!showApiKey)}
+              className="btn btn-secondary px-3"
+              aria-label="API-Schlüssel anzeigen/verbergen"
+            >
+              {showApiKey ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
+
+          <div className="mt-5 flex justify-between items-center">
+            {saved && (
+              <div className="flex items-center gap-2 text-emerald-600 font-semibold text-sm">
+                <CheckCircle size={18} />
+                <span>Gespeichert! Weiterleitung...</span>
+              </div>
+            )}
+            <button onClick={handleSave} className="btn btn-primary ml-auto">
+              <Save size={18} />
+              <span>Speichern</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
