@@ -38,7 +38,7 @@ function GespraechsnotizBlock({ lehrprobeId }) {
       <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-5 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2 text-white">
           <MessageSquare size={18} />
-          <h3 className="font-bold">Gespraechsnotizen</h3>
+          <h3 className="font-bold">Gesprächsnotizen</h3>
         </div>
         {gespeichert && (
           <div className="flex items-center gap-1.5 text-emerald-300 text-xs font-medium">
@@ -63,4 +63,4 @@ function GespraechsnotizBlock({ lehrprobeId }) {
   );
 }
 
-export default GesprächsnotizBlock;
+export default GespraechsnotizBlock;
