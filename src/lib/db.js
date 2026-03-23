@@ -1,23 +1,29 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'lehrprobe-db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 async function initDB() {
   return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains('lehrproben')) {
-        const store = db.createObjectStore('lehrproben', { keyPath: 'id' });
-        store.createIndex('datum', 'datum');
+    upgrade(db, oldVersion) {
+      if (oldVersion < 1) {
+        if (!db.objectStoreNames.contains('lehrproben')) {
+          const store = db.createObjectStore('lehrproben', { keyPath: 'id' });
+          store.createIndex('datum', 'datum');
+        }
+        if (!db.objectStoreNames.contains('auswertungen')) {
+          const store = db.createObjectStore('auswertungen', { keyPath: 'id' });
+          store.createIndex('lehrprobeId', 'lehrprobeId');
+        }
+        if (!db.objectStoreNames.contains('einstellungen')) {
+          db.createObjectStore('einstellungen', { keyPath: 'key' });
+        }
       }
-
-      if (!db.objectStoreNames.contains('auswertungen')) {
-        const store = db.createObjectStore('auswertungen', { keyPath: 'id' });
-        store.createIndex('lehrprobeId', 'lehrprobeId');
-      }
-
-      if (!db.objectStoreNames.contains('einstellungen')) {
-        db.createObjectStore('einstellungen', { keyPath: 'key' });
+      if (oldVersion < 2) {
+        if (!db.objectStoreNames.contains('gesprächsnotizen')) {
+          const store = db.createObjectStore('gesprächsnotizen', { keyPath: 'id' });
+          store.createIndex('lehrprobeId', 'lehrprobeId');
+        }
       }
     },
   });
@@ -77,4 +83,26 @@ export async function getEinstellung(key) {
 export async function setEinstellung(key, value) {
   const db = await initDB();
   return db.put('einstellungen', { key, value });
+}
+
+export async function getGesprächsnotizForLehrprobe(lehrprobeId) {
+  const db = await initDB();
+  const notizen = await db.getAllFromIndex('gesprächsnotizen', 'lehrprobeId', lehrprobeId);
+  return notizen[0] || null;
+}
+
+export async function saveGesprächsnotiz(lehrprobeId, text) {
+  const db = await initDB();
+  const existing = await getGesprächsnotizForLehrprobe(lehrprobeId);
+  if (existing) {
+    return db.put('gesprächsnotizen', { ...existing, text, aktualisiertAm: new Date().toISOString() });
+  } else {
+    return db.add('gesprächsnotizen', {
+      id: crypto.randomUUID(),
+      lehrprobeId,
+      text,
+      erstelltAm: new Date().toISOString(),
+      aktualisiertAm: new Date().toISOString(),
+    });
+  }
 }
