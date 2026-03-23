@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { getLehrprobe, deleteLehrprobe } from '../lib/db';
 import Auswertebogen from '../components/Auswertebogen';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
-import GesprächsnotizBlock from '../components/GesprächsnotizBlock';
+import GespraechsnotizBlock from '../components/GespraechsnotizBlock';
 import { ChevronLeft, Calendar, Printer, Trash2, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -95,7 +95,7 @@ function LehrprobeDetail() {
       <Auswertebogen lehrprobeId={probe.id} lehrprobe={probe} />
 
       <div className="mt-6">
-        <GesprächsnotizBlock lehrprobeId={probe.id} />
+        <GespraechsnotizBlock lehrprobeId={probe.id} />
       </div>
 
       <ConfirmDeleteModal
