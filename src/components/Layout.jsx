@@ -1,5 +1,5 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { GraduationCap, Settings } from 'lucide-react';
+import { GraduationCap, Settings, LayoutDashboard, ClipboardList } from 'lucide-react';
 
 function Layout() {
   return (
@@ -15,11 +15,34 @@ function Layout() {
               <p className="text-indigo-200 text-xs">Fahrlehrerausbildung</p>
             </div>
           </NavLink>
-          <nav>
+          <nav className="flex items-center gap-1">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) =>
+                `flex items-center gap-2 px-3 py-2 rounded-xl transition-all text-sm font-medium ${
+                  isActive ? 'bg-white/30' : 'hover:bg-white/20'
+                }`
+              }
+            >
+              <ClipboardList size={18} />
+              <span className="hidden sm:inline">Lehrproben</span>
+            </NavLink>
+            <NavLink
+              to="/dashboard"
+              className={({ isActive }) =>
+                `flex items-center gap-2 px-3 py-2 rounded-xl transition-all text-sm font-medium ${
+                  isActive ? 'bg-white/30' : 'hover:bg-white/20'
+                }`
+              }
+            >
+              <LayoutDashboard size={18} />
+              <span className="hidden sm:inline">Dashboard</span>
+            </NavLink>
             <NavLink
               to="/einstellungen"
               className={({ isActive }) =>
-                `flex items-center gap-2 px-4 py-2 rounded-xl transition-all text-sm font-medium ${
+                `flex items-center gap-2 px-3 py-2 rounded-xl transition-all text-sm font-medium ${
                   isActive ? 'bg-white/30' : 'hover:bg-white/20'
                 }`
               }
