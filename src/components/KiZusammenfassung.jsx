@@ -3,30 +3,54 @@ import { getEinstellung } from '../lib/db';
 import { Wand, Loader, AlertTriangle } from 'lucide-react';
 
 function erstellePrompt(durchschnitte, notizen, lehrprobe) {
-  let promptText = `Du bist ein erfahrener Ausbildungsfahrlehrer. Deine Aufgabe ist es, eine faire, konstruktive und gut strukturierte schriftliche Zusammenfassung einer Lehrprobe zu erstellen. Diese Zusammenfassung dient als Grundlage für das Feedbackgespräch mit dem Fahrlehreranwärter.
+  let promptText = `Du bist ein erfahrener Ausbildungsfahrlehrer und Fahrlehrerausbilder mit tiefem Fachwissen in der Fahrerlaubnis-Verordnung (FeV), der Fahrschüler-Ausbildungsordnung (FahrschAusbO) und dem Straßenverkehrsrecht (StVO, StVG, StVZO). Deine Aufgabe ist es, eine strukturierte, stichpunktartige Analyse einer Lehrprobe zu erstellen, die als Grundlage für ein mindestens 20-minütiges Auswertungsgespräch mit dem Fahrlehreranwärter dient.
 
-  **Struktur:**
-  1.  **Einleitung:** Beginne mit einer kurzen, freundlichen Einleitung. Nenne den Namen des Anwärters (${lehrprobe.prüfling}) und das Thema der Lehrprobe ("${lehrprobe.thema}").
-  2.  **Stärken:** Hebe 1-2 Kompetenzbereiche hervor, die besonders gut waren. Ein Bereich gilt als gut, wenn der Durchschnittswert über 3.5 liegt.
-  3.  **Entwicklungspotenzial:** Sprich 1-2 Kompetenzbereiche an, in denen noch Verbesserungspotenzial besteht. Ein Bereich gilt als verbesserungswürdig, wenn der Durchschnittswert unter 3.0 liegt. Formuliere dies konstruktiv und nicht anklagend.
-  4.  **Konkrete Beobachtungen:** Integriere die manuellen Notizen des Prüfers, um deine Punkte zu untermauern. Gib sie nicht einfach nur wieder, sondern baue sie sinnvoll in den Fließtext ein.
-  5.  **Zusammenfassung & Ausblick:** Fasse den Gesamteindruck kurz zusammen und gib eine abschließende, motivierende Empfehlung für die weitere Ausbildung.
+Anwärter: ${lehrprobe.prüfling}
+Thema der Lehrprobe: ${lehrprobe.thema}
 
-  **Wichtige Anweisungen:**
-  - Schreibe in einem professionellen, aber zugänglichen Ton.
-  - Verwende eine klare Sprache und formatiere den Text mit Absätzen zur besseren Lesbarkeit.
-  - Die finale Note oder ein reines "bestanden/nicht bestanden" soll NICHT erwähnt werden.
-  - Konzentriere dich auf das beobachtete Verhalten und dessen Wirkung.
+Erstelle die Analyse nach folgender Struktur – ausschließlich in Stichpunkten:
 
-  **Hier sind die Daten der Lehrprobe:**
+## 1. Gesamtüberblick
+- Anwärter, Thema, Kurzeinschätzung des Gesamteindrucks
 
-  **1. Quantitative Übersicht (Durchschnittswerte von 1-5):**
-  - Sachkompetenz: ${durchschnitte.sachkompetenz?.toFixed(2) || 'N/A'}
-  - Methodenkompetenz: ${durchschnitte.methodenkompetenz?.toFixed(2) || 'N/A'}
-  - Sozialkompetenz: ${durchschnitte.sozialkompetenz?.toFixed(2) || 'N/A'}
-  - Personalkompetenz: ${durchschnitte.personalkompetenz?.toFixed(2) || 'N/A'}
+## 2. Analyse je Kompetenzbereich
+Für jeden der vier Bereiche (Sachkompetenz, Methodenkompetenz, Sozialkompetenz, Personalkompetenz):
+- Beobachtungen: Was wurde konkret festgestellt?
+- Stärken: Was lief gut? (Durchschnitt > 3.5 = Stärke)
+- Schwächen/Entwicklungsfelder: Was war unzureichend? (Durchschnitt < 3.0 = Handlungsbedarf)
+- Bezug zu Rechtsgrundlagen: Welche konkreten Paragraphen aus FeV, FahrschAusbO, StVO oder StVG sind relevant? (z.B. § 6 FahrschAusbO, § 2 FeV, § 1 StVO)
+- Handlungsempfehlungen: Konkrete, umsetzbare Verbesserungsvorschläge
 
-  **2. Manuelle Notizen des Prüfers:**
+## 3. Rechtliche Einordnung
+- Welche Anforderungen aus FeV und FahrschAusbO wurden erfüllt / nicht erfüllt?
+- Relevante Paragraphen mit kurzer Begründung
+
+## 4. Pro / Kontra Gesamtbewertung
+- Pro: Was spricht für eine positive Entwicklung
+- Kontra: Was fehlt noch oder ist problematisch
+
+## 5. Gesprächsleitfaden für das Auswertungsgespräch
+- 5-8 konkrete Fragen die den Anwärter zur Selbstreflexion anregen
+- Hinweise worauf der Ausbilder im Gespräch besonders achten sollte
+
+## 6. Empfehlungen für die weitere Ausbildung
+- Konkrete nächste Schritte
+- Themen die in zukünftigen Lehrproben beobachtet werden sollten
+
+Wichtige Anweisungen:
+- Ausschließlich Stichpunkte, kein Fließtext
+- Immer konkrete Paragraphen nennen, nie nur allgemein auf Gesetze verweisen
+- Professioneller, sachlicher Ton – wertschätzend aber klar
+- Die finale Note oder "bestanden/nicht bestanden" wird NICHT erwähnt
+- Jeder Stichpunkt soll als Gesprächsgrundlage für mind. 1-2 Minuten taugen
+
+Quantitative Bewertung (Durchschnittswerte von 1-5):
+- Sachkompetenz: ${durchschnitte.sachkompetenz?.toFixed(2) || 'N/A'}
+- Methodenkompetenz: ${durchschnitte.methodenkompetenz?.toFixed(2) || 'N/A'}
+- Sozialkompetenz: ${durchschnitte.sozialkompetenz?.toFixed(2) || 'N/A'}
+- Personalkompetenz: ${durchschnitte.personalkompetenz?.toFixed(2) || 'N/A'}
+
+Manuelle Notizen des Prüfers:
 `;
 
   const relevanteNotizen = Object.entries(notizen)
@@ -44,21 +68,22 @@ function oeffneZusammenfassungInTab(text, lehrprobe) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zusammenfassung – ${lehrprobe.prüfling}</title>
+  <title>Analyse – ${lehrprobe.prüfling}</title>
   <style>
-    body { font-family: Georgia, serif; max-width: 800px; margin: 60px auto; padding: 0 30px; color: #1e293b; line-height: 1.8; }
+    body { font-family: Arial, sans-serif; max-width: 900px; margin: 60px auto; padding: 0 30px; color: #1e293b; line-height: 1.7; }
     h1 { font-size: 1.6rem; color: #0f172a; margin-bottom: 4px; }
     .meta { color: #64748b; font-size: 0.95rem; margin-bottom: 40px; }
-    .inhalt { white-space: pre-wrap; font-size: 1rem; }
+    .inhalt { white-space: pre-wrap; font-size: 0.95rem; }
+    .inhalt h2, .inhalt ## { font-weight: bold; margin-top: 24px; }
     .drucken { position: fixed; top: 20px; right: 20px; background: #2563eb; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
     .drucken:hover { background: #1d4ed8; }
-    @media print { .drucken { display: none; } }
+    @media print { .drucken { display: none; } body { margin: 20px; } }
   </style>
 </head>
 <body>
   <button class="drucken" onclick="window.print()">🖨️ Drucken / PDF</button>
-  <h1>KI-Zusammenfassung: ${lehrprobe.thema}</h1>
-  <p class="meta">Lehrprobe von ${lehrprobe.prüfling}</p>
+  <h1>Lehrproben-Analyse: ${lehrprobe.thema}</h1>
+  <p class="meta">Anwärter: <strong>${lehrprobe.prüfling}</strong></p>
   <div class="inhalt">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
 </body>
 </html>`;
@@ -122,12 +147,12 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
     <div className="bg-white rounded-xl shadow-md p-5 print-container">
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-xl font-bold text-slate-800">KI-gestützte Zusammenfassung</h3>
-          <p className="text-sm text-slate-500 mt-1">Die Zusammenfassung wird in einem neuen Tab geöffnet.</p>
+          <h3 className="text-xl font-bold text-slate-800">KI-gestützte Analyse</h3>
+          <p className="text-sm text-slate-500 mt-1">Öffnet eine detaillierte Auswertung in einem neuen Tab.</p>
         </div>
         <button onClick={handleGenerate} disabled={isLoading} className="btn btn-primary">
           {isLoading ? <Loader size={20} className="animate-spin" /> : <Wand size={20} />}
-          <span>{isLoading ? 'Generiere...' : 'Zusammenfassung erstellen'}</span>
+          <span>{isLoading ? 'Analysiere...' : 'Analyse erstellen'}</span>
         </button>
       </div>
 
