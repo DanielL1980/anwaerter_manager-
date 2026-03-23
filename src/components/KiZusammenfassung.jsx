@@ -108,7 +108,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
       )}
 
       {zusammenfassung && (
-        <div className="mt-4 p-4 bg-slate-50 border rounded-md">
+        <div className="mt-4 p-4 bg-slate-50 border rounded-md overflow-y-auto max-h-96">
           <pre className="whitespace-pre-wrap text-slate-800 text-sm leading-relaxed font-sans">{zusammenfassung}</pre>
         </div>
       )}
