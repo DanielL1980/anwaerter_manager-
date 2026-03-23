@@ -4,7 +4,7 @@ import { getLehrprobe, deleteLehrprobe } from '../lib/db';
 import Auswertebogen from '../components/Auswertebogen';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import GespraechsnotizBlock from '../components/GespraechsnotizBlock';
-import { ChevronLeft, Calendar, Printer, Trash2, User } from 'lucide-react';
+import { ChevronLeft, Calendar, Printer, Trash2, User, GraduationCap, Car } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import '../print.css';
@@ -42,16 +42,18 @@ function LehrprobeDetail() {
     fetchProbe();
   }, [id]);
 
-  if (loading) return <div className="text-center p-12 text-slate-500">Lade Lehrprobe...</div>;
+  if (loading) return <div className="text-center p-12 text-slate-500">Lade Auswertebogen...</div>;
   if (!probe) return (
     <div className="text-center p-12">
-      <h2 className="text-xl font-bold mb-4">Lehrprobe nicht gefunden</h2>
+      <h2 className="text-xl font-bold mb-4">Auswertung nicht gefunden</h2>
       <Link to="/" className="text-indigo-600 hover:underline">Zurück zur Übersicht</Link>
     </div>
   );
 
   const farbe = getAvatarColor(probe.prüfling);
   const initialen = getInitials(probe.prüfling);
+  const istFahrstunde = probe.typ === 'fahrstunde';
+  const titelTyp = istFahrstunde ? 'Auswertebogen Fahrstunden' : 'Auswertebogen Theoretischer Unterricht';
 
   return (
     <div>
@@ -69,24 +71,25 @@ function LehrprobeDetail() {
       </div>
 
       <div className="card overflow-hidden mb-6 print-container info-box">
-        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-6 text-white">
+        <div className={`bg-gradient-to-r ${istFahrstunde ? 'from-blue-600 to-cyan-600' : 'from-indigo-600 to-blue-600'} px-6 py-6 text-white`}>
           <div className="flex items-center gap-5">
             <div className={`bg-gradient-to-br ${farbe} rounded-2xl w-16 h-16 flex items-center justify-center flex-shrink-0 shadow-lg ring-2 ring-white/30`}>
               <span className="text-white font-bold text-xl">{initialen}</span>
             </div>
-            <div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                {istFahrstunde ? <Car size={16} className="text-blue-200" /> : <GraduationCap size={16} className="text-indigo-200" />}
+                <span className="text-white/70 text-sm font-medium">{titelTyp}</span>
+              </div>
               <h1 className="text-2xl font-bold">{probe.thema}</h1>
               <Link to={`/anwaerter/${encodeURIComponent(probe.prüfling)}`}
-                className="text-indigo-200 mt-0.5 flex items-center gap-1.5 hover:text-white transition no-print">
+                className="text-white/70 mt-0.5 flex items-center gap-1.5 hover:text-white transition no-print text-sm">
                 <User size={14} /> {probe.prüfling} – Profil ansehen →
               </Link>
-              <p className="text-indigo-200 mt-0.5 hidden print:flex items-center gap-1.5">
-                <User size={14} /> {probe.prüfling}
-              </p>
             </div>
           </div>
         </div>
-        <div className="px-6 py-3 bg-indigo-50 border-t border-indigo-100 flex items-center gap-2 text-indigo-700 text-sm font-medium">
+        <div className={`px-6 py-3 ${istFahrstunde ? 'bg-blue-50 border-blue-100' : 'bg-indigo-50 border-indigo-100'} border-t flex items-center gap-2 text-sm font-medium ${istFahrstunde ? 'text-blue-700' : 'text-indigo-700'}`}>
           <Calendar size={15} />
           <span>{format(new Date(probe.datum), 'EEEE, dd. MMMM yyyy', { locale: de })}</span>
         </div>
