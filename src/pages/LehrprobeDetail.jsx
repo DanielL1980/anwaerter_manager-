@@ -5,8 +5,8 @@ import Auswertebogen from '../components/Auswertebogen';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import GespraechsnotizBlock from '../components/GespraechsnotizBlock';
 import GesetzesLinks from '../components/GesetzesLinks';
-import Schnellnotizen from '../components/Schnellnotizen';
 import FahrtNotizblock from '../components/FahrtNotizblock';
+import TheorieNotizblock from '../components/TheorieNotizblock';
 import { ChevronLeft, Calendar, Printer, Trash2, User, GraduationCap, Car } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -109,10 +109,11 @@ function LehrprobeDetail() {
 
       <div className="mt-6 space-y-6">
         <GesetzesLinks thema={probe.thema} />
-        <Schnellnotizen lehrprobeId={probe.id} />
-        <FahrtNotizblock lehrprobeId={probe.id} />
+        {istFahrstunde && <FahrtNotizblock lehrprobeId={probe.id} />}
         <GespraechsnotizBlock lehrprobeId={probe.id} />
       </div>
+
+      {!istFahrstunde && <TheorieNotizblock lehrprobeId={probe.id} />}
 
       <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}
