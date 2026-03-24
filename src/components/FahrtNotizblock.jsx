@@ -180,6 +180,7 @@ function Karte({ pins, onPinLoeschen, onSeiteOeffnen }) {
   const mapInstanceRef = useRef(null);
   const markersRef = useRef([]);
   const [kartentyp, setKartentyp] = useState('satellit');
+  const [mapBereit, setMapBereit] = useState(false);
   const layerRef = useRef(null);
 
   const LAYER = {
@@ -193,35 +194,38 @@ function Karte({ pins, onPinLoeschen, onSeiteOeffnen }) {
     },
   };
 
+  const initMap = () => {
+    if (mapInstanceRef.current || !mapRef.current || !window.L) return;
+    const L = window.L;
+    const map = L.map(mapRef.current).setView([51.1657, 10.4515], 6);
+    const l = LAYER['satellit'];
+    layerRef.current = L.tileLayer(l.url, { attribution: l.attribution }).addTo(map);
+    mapInstanceRef.current = map;
+    setMapBereit(true);
+  };
+
   useEffect(() => {
     if (!mapRef.current) return;
-
-    const initMap = () => {
-      if (mapInstanceRef.current || !mapRef.current) return;
-      const L = window.L;
-      const map = L.map(mapRef.current).setView([51.1657, 10.4515], 6);
-      const l = LAYER[kartentyp];
-      layerRef.current = L.tileLayer(l.url, { attribution: l.attribution }).addTo(map);
-      mapInstanceRef.current = map;
-    };
-
     if (!document.querySelector('link[href*="leaflet"]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
       link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
       document.head.appendChild(link);
     }
-
-    if (window.L) { initMap(); }
-    else {
-      const script = document.createElement('script');
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = initMap;
-      document.head.appendChild(script);
+    if (window.L) {
+      setTimeout(initMap, 150);
+    } else {
+      const existing = document.querySelector('script[src*="leaflet"]');
+      if (existing) { existing.addEventListener('load', () => setTimeout(initMap, 150)); }
+      else {
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => setTimeout(initMap, 150);
+        document.head.appendChild(script);
+      }
     }
-
     return () => {
-      if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
+      if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; setMapBereit(false); }
     };
   }, []);
 
@@ -271,9 +275,10 @@ function Karte({ pins, onPinLoeschen, onSeiteOeffnen }) {
       try {
         const gruppe = L.featureGroup(markersRef.current);
         map.fitBounds(gruppe.getBounds().pad(0.3));
+        setTimeout(() => map.invalidateSize(), 200);
       } catch (e) {}
     }
-  }, [pins]);
+  }, [pins, mapBereit]);
 
   return (
     <div className="space-y-3">
@@ -426,102 +431,129 @@ function FahrtNotizblock({ lehrprobeId }) {
   // Pin-Seite zugehörig?
   const aktuellerPinFuerSeite = pins.find(p => p.seiteIndex === aktuelleSeite);
 
-  return (
-    <div className="card overflow-hidden">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-4 text-white">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-lg">Notizblock & Kartenpins</h3>
-          <div className="flex gap-1 bg-white/20 rounded-xl p-1">
-            <button onClick={() => setAnsicht('notiz')}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition ${ansicht === 'notiz' ? 'bg-white text-violet-700' : 'text-white hover:bg-white/20'}`}>
-              ✏️ Notizen
-            </button>
-            <button onClick={() => setAnsicht('karte')}
-              className={`px-3 py-1 rounded-lg text-sm font-medium transition ${ansicht === 'karte' ? 'bg-white text-violet-700' : 'text-white hover:bg-white/20'}`}>
-              🗺️ Karte {pins.length > 0 && `(${pins.length})`}
-            </button>
+  const NotizInhalt = () => (
+    <>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setAktuelleSeite(Math.max(0, aktuelleSeite - 1))}
+            disabled={aktuelleSeite === 0}
+            className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition">
+            <ChevronLeft size={16} />
+          </button>
+          <div className="text-center">
+            <span className="text-sm font-semibold text-slate-700">
+              Seite {aktuelleSeite + 1} / {seiten.length}
+            </span>
+            {aktuellerPinFuerSeite && (
+              <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">
+                Pin #{aktuellerPinFuerSeite.nummer}
+              </span>
+            )}
           </div>
+          <button onClick={() => setAktuelleSeite(Math.min(seiten.length - 1, aktuelleSeite + 1))}
+            disabled={aktuelleSeite === seiten.length - 1}
+            className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition">
+            <ChevronRight size={16} />
+          </button>
+        </div>
+        <div className="flex gap-1.5">
+          <button onClick={exportSeite}
+            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition">
+            <Download size={15} />
+          </button>
+          <button onClick={seiteLoeschen}
+            className="p-1.5 rounded-lg border border-slate-200 text-red-400 hover:bg-red-50 transition">
+            <Trash2 size={15} />
+          </button>
+          <button onClick={seiteHinzufuegen}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-medium hover:bg-violet-700 transition">
+            <Plus size={14} /> Seite
+          </button>
+        </div>
+      </div>
+      <Zeichenflaeche
+        key={seiten[aktuelleSeite]?.id}
+        seiteId={seiten[aktuelleSeite]?.id}
+        gespeicherteData={seiten[aktuelleSeite]?.data}
+        onSpeichern={seiteSpeichern}
+        aktiverPin={aktiverPin}
+      />
+    </>
+  );
+
+  return (
+    <>
+      {/* Eingebetteter Notizblock (normaler Modus) */}
+      <div className="card overflow-hidden">
+        <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-4 text-white">
+          <div className="flex items-center justify-between">
+            <h3 className="font-bold text-lg">Notizblock & Kartenpins</h3>
+            <div className="flex gap-1 bg-white/20 rounded-xl p-1">
+              <button onClick={() => setAnsicht('notiz')}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition ${ansicht === 'notiz' ? 'bg-white text-violet-700' : 'text-white hover:bg-white/20'}`}>
+                ✏️ Notizen
+              </button>
+              <button onClick={() => setAnsicht('karte')}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition ${ansicht === 'karte' ? 'bg-white text-violet-700' : 'text-white hover:bg-white/20'}`}>
+                🗺️ Karte {pins.length > 0 && `(${pins.length})`}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div className="p-4">
+          {ansicht === 'notiz' ? <NotizInhalt /> : (
+            <Karte
+              pins={pins}
+              onPinLoeschen={pinLoeschen}
+              onSeiteOeffnen={(seiteIndex) => { setAktuelleSeite(seiteIndex); setAnsicht('notiz'); }}
+            />
+          )}
         </div>
       </div>
 
-      <div className="p-4">
-        {ansicht === 'notiz' ? (
-          <>
-            {/* Seiten-Navigation */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <button onClick={() => setAktuelleSeite(Math.max(0, aktuelleSeite - 1))}
-                  disabled={aktuelleSeite === 0}
-                  className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition">
-                  <ChevronLeft size={16} />
-                </button>
-                <div className="text-center">
-                  <span className="text-sm font-semibold text-slate-700">
-                    Seite {aktuelleSeite + 1} / {seiten.length}
-                  </span>
-                  {aktuellerPinFuerSeite && (
-                    <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">
-                      Pin #{aktuellerPinFuerSeite.nummer}
-                    </span>
-                  )}
+      {/* Overlay – öffnet sich automatisch wenn Pin gesetzt wird */}
+      {aktiverPin && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative bg-white w-full sm:max-w-3xl sm:rounded-2xl shadow-2xl flex flex-col"
+            style={{ height: '90vh', maxHeight: '90vh' }}>
+            <div className="bg-gradient-to-r from-red-500 to-orange-500 px-5 py-4 text-white flex items-center justify-between flex-shrink-0 sm:rounded-t-2xl">
+              <div className="flex items-center gap-3">
+                <div className="bg-white text-red-500 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                  {aktiverPin.nummer}
                 </div>
-                <button onClick={() => setAktuelleSeite(Math.min(seiten.length - 1, aktuelleSeite + 1))}
-                  disabled={aktuelleSeite === seiten.length - 1}
-                  className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition">
-                  <ChevronRight size={16} />
-                </button>
+                <div>
+                  <h3 className="font-bold">Pin #{aktiverPin.nummer} – Notiz schreiben</h3>
+                  <p className="text-red-200 text-xs">{aktiverPin.zeit} · Mit S Pen schreiben</p>
+                </div>
               </div>
-              <div className="flex gap-1.5">
-                <button onClick={exportSeite} title="Als PNG speichern"
-                  className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition">
-                  <Download size={15} />
-                </button>
-                <button onClick={seiteLoeschen} title="Seite löschen"
-                  className="p-1.5 rounded-lg border border-slate-200 text-red-400 hover:bg-red-50 transition">
-                  <Trash2 size={15} />
-                </button>
-                <button onClick={seiteHinzufuegen}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-medium hover:bg-violet-700 transition">
-                  <Plus size={14} /> Seite
-                </button>
-              </div>
+              <button onClick={handlePinStoppen}
+                className="flex items-center gap-2 bg-white text-red-600 font-bold px-4 py-2 rounded-xl text-sm hover:bg-red-50 transition active:scale-95">
+                <Square size={14} fill="currentColor" /> Fertig
+              </button>
             </div>
+            <div className="flex-1 overflow-hidden p-3">
+              <NotizInhalt />
+            </div>
+          </div>
+        </div>
+      )}
 
-            <Zeichenflaeche
-              key={seiten[aktuelleSeite]?.id}
-              seiteId={seiten[aktuelleSeite]?.id}
-              gespeicherteData={seiten[aktuelleSeite]?.data}
-              onSpeichern={seiteSpeichern}
-              aktiverPin={aktiverPin}
-            />
-          </>
-        ) : (
-          <Karte
-            pins={pins}
-            onPinLoeschen={pinLoeschen}
-            onSeiteOeffnen={(seiteIndex) => { setAktuelleSeite(seiteIndex); setAnsicht('notiz'); }}
-          />
-        )}
-      </div>
-
-      {/* Bestätigung Toast */}
+      {/* Toast */}
       {bestaetigung && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-sm font-medium px-4 py-2 rounded-xl shadow-lg z-50 animate-pulse">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-sm font-medium px-4 py-2 rounded-xl shadow-lg z-50">
           {bestaetigung}
         </div>
       )}
 
-      {/* Floating Action Button */}
+      {/* Floating Button */}
       <button
         onClick={handlePinStarten}
         disabled={gpsLaedt}
-        className={`fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all active:scale-95 ${
-          aktiverPin
-            ? 'bg-red-500 hover:bg-red-600 shadow-red-300'
-            : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-300'
+        className={`fixed bottom-6 right-6 z-40 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all active:scale-95 ${
+          aktiverPin ? 'bg-red-500 hover:bg-red-600 shadow-red-300' : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-300'
         }`}
-        title={aktiverPin ? 'Notiz-Zuordnung beenden' : 'Position merken & neue Notizseite öffnen'}
+        title={aktiverPin ? 'Notiz beenden' : 'Position merken & Notiz schreiben'}
       >
         {gpsLaedt ? (
           <span className="text-white text-2xl animate-spin">⟳</span>
@@ -531,14 +563,7 @@ function FahrtNotizblock({ lehrprobeId }) {
           <MapPin size={28} className="text-white" />
         )}
       </button>
-
-      {/* Pin-Status-Banner */}
-      {aktiverPin && (
-        <div className="fixed bottom-24 right-6 z-50 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg">
-          📍 Pin #{aktiverPin.nummer} aktiv
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
