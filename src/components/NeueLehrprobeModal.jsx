@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { addLehrprobe } from '../lib/db';
 import { X, User, BookOpen, Calendar, Car, GraduationCap, Clock } from 'lucide-react';
+import VorlagenAuswahl from './VorlagenAuswahl';
 import { format } from 'date-fns';
 
 function NeueLehrprobeModal({ isOpen, onClose, onLehrprobeAdded }) {
@@ -107,8 +108,9 @@ function NeueLehrprobeModal({ isOpen, onClose, onLehrprobeAdded }) {
                 {typ === 'theorie' ? 'Thema des Unterrichts' : 'Thema / Fahraufgabe'}
               </span>
             </label>
+            <VorlagenAuswahl typ={typ} onAuswaehlen={setThema} />
             <input type="text" value={thema} onChange={e => setThema(e.target.value)}
-              className="input-field"
+              className="input-field mt-2"
               placeholder={typ === 'theorie' ? 'z.B. Andere Verkehrsteilnehmer' : 'z.B. Einparken, Kurvenfahren'} />
           </div>
 
