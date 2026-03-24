@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, Trash2, MapPin, Eraser, Pen, ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Plus, Trash2, MapPin, Eraser, Pen, ChevronLeft, ChevronRight, Download, Square, Map } from 'lucide-react';
 
 // =================== KARIERTES CANVAS ===================
 function zeichneKariert(canvas) {
@@ -17,7 +17,7 @@ function zeichneKariert(canvas) {
   }
 }
 
-function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern }) {
+function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern, aktiverPin }) {
   const canvasRef = useRef(null);
   const [zeichnen, setZeichnen] = useState(false);
   const [werkzeug, setWerkzeug] = useState('stift');
@@ -44,21 +44,6 @@ function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern }) {
     return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
   };
 
-  const startZeichnen = (e) => {
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    const pos = getPos(e, canvas);
-    setZeichnen(true);
-    letzterPunkt.current = pos;
-    const ctx = canvas.getContext('2d');
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, (werkzeug === 'radierer' ? staerke * 4 : staerke) / 2, 0, Math.PI * 2);
-    ctx.fillStyle = werkzeug === 'radierer' ? '#ffffff' : farbe;
-    ctx.fill();
-    // Karierung nach Radierer wiederherstellen
-    if (werkzeug === 'radierer') karierungWiederherstellen(ctx, pos, staerke * 4);
-  };
-
   const karierungWiederherstellen = (ctx, pos, groesse) => {
     const raster = 30;
     const x1 = Math.floor((pos.x - groesse) / raster) * raster;
@@ -73,6 +58,20 @@ function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern }) {
     for (let y = y1; y <= y2; y += raster) {
       ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
     }
+  };
+
+  const startZeichnen = (e) => {
+    e.preventDefault();
+    const canvas = canvasRef.current;
+    const pos = getPos(e, canvas);
+    setZeichnen(true);
+    letzterPunkt.current = pos;
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.arc(pos.x, pos.y, (werkzeug === 'radierer' ? staerke * 4 : staerke) / 2, 0, Math.PI * 2);
+    ctx.fillStyle = werkzeug === 'radierer' ? '#ffffff' : farbe;
+    ctx.fill();
+    if (werkzeug === 'radierer') karierungWiederherstellen(ctx, pos, staerke * 4);
   };
 
   const weiterZeichnen = (e) => {
@@ -111,6 +110,18 @@ function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern }) {
 
   return (
     <div className="space-y-2">
+      {/* Pin-Indikator */}
+      {aktiverPin && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl">
+          <div className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+            {aktiverPin.nummer}
+          </div>
+          <span className="text-sm text-red-700 font-medium">
+            Notiz wird Pin #{aktiverPin.nummer} zugeordnet ({aktiverPin.zeit})
+          </span>
+        </div>
+      )}
+
       {/* Werkzeugleiste */}
       <div className="flex flex-wrap items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200">
         <div className="flex gap-1">
@@ -137,12 +148,12 @@ function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern }) {
           <span className="text-xs font-bold text-slate-600 w-4">{staerke}</span>
         </div>
         <button onClick={leeren}
-          className="p-2 rounded-lg bg-white border border-slate-200 text-red-400 hover:bg-red-50 hover:text-red-600 transition">
+          className="p-2 rounded-lg bg-white border border-slate-200 text-red-400 hover:bg-red-50 transition">
           <Trash2 size={16} />
         </button>
       </div>
 
-      {/* Kariertes Canvas */}
+      {/* Canvas */}
       <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm" style={{ touchAction: 'none' }}>
         <canvas
           ref={canvasRef}
@@ -163,19 +174,37 @@ function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern }) {
   );
 }
 
-// =================== KARTE MIT GPS-PINS ===================
-function KarteMitPins({ pins, onPinHinzufuegen, onPinLoeschen }) {
-  const [laedt, setLaedt] = useState(false);
-  const [fehler, setFehler] = useState('');
-  const [notizText, setNotizText] = useState('');
+// =================== KARTE ===================
+function Karte({ pins, onPinLoeschen, onSeiteOeffnen }) {
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markersRef = useRef([]);
+  const [kartentyp, setKartentyp] = useState('satellit');
+  const layerRef = useRef(null);
+
+  const LAYER = {
+    strasse: {
+      url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      attribution: '© OpenStreetMap',
+    },
+    satellit: {
+      url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+      attribution: '© Esri World Imagery',
+    },
+  };
 
   useEffect(() => {
-    if (mapInstanceRef.current || !mapRef.current) return;
+    if (!mapRef.current) return;
 
-    // Leaflet CSS
+    const initMap = () => {
+      if (mapInstanceRef.current || !mapRef.current) return;
+      const L = window.L;
+      const map = L.map(mapRef.current).setView([51.1657, 10.4515], 6);
+      const l = LAYER[kartentyp];
+      layerRef.current = L.tileLayer(l.url, { attribution: l.attribution }).addTo(map);
+      mapInstanceRef.current = map;
+    };
+
     if (!document.querySelector('link[href*="leaflet"]')) {
       const link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -183,19 +212,8 @@ function KarteMitPins({ pins, onPinHinzufuegen, onPinLoeschen }) {
       document.head.appendChild(link);
     }
 
-    const initMap = () => {
-      if (mapInstanceRef.current || !mapRef.current) return;
-      const L = window.L;
-      const map = L.map(mapRef.current, { zoomControl: true }).setView([51.1657, 10.4515], 6);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>'
-      }).addTo(map);
-      mapInstanceRef.current = map;
-    };
-
-    if (window.L) {
-      initMap();
-    } else {
+    if (window.L) { initMap(); }
+    else {
       const script = document.createElement('script');
       script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
       script.onload = initMap;
@@ -203,25 +221,52 @@ function KarteMitPins({ pins, onPinHinzufuegen, onPinLoeschen }) {
     }
 
     return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
-      }
+      if (mapInstanceRef.current) { mapInstanceRef.current.remove(); mapInstanceRef.current = null; }
     };
   }, []);
 
+  // Layer wechseln
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !window.L) return;
     const L = window.L;
+    if (layerRef.current) layerRef.current.remove();
+    const l = LAYER[kartentyp];
+    layerRef.current = L.tileLayer(l.url, { attribution: l.attribution }).addTo(map);
+  }, [kartentyp]);
+
+  // Pins aktualisieren
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !window.L) return;
+    const L = window.L;
+
     markersRef.current.forEach(m => m.remove());
     markersRef.current = [];
+
     pins.forEach((pin) => {
-      const marker = L.marker([pin.lat, pin.lng])
+      const icon = L.divIcon({
+        html: `<div style="background:#ef4444;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:13px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4)">${pin.nummer}</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        className: '',
+      });
+
+      const gmapsUrl = `https://www.google.com/maps?q=${pin.lat},${pin.lng}&layer=c&cbll=${pin.lat},${pin.lng}`;
+      const marker = L.marker([pin.lat, pin.lng], { icon })
         .addTo(map)
-        .bindPopup(`<b>${pin.zeit}</b><br>${pin.notiz || '–'}<br><small>±${pin.genauigkeit}m</small>`);
+        .bindPopup(`
+          <div style="min-width:200px">
+            <b style="color:#ef4444">Pin #${pin.nummer}</b> &nbsp;·&nbsp; ${pin.zeit}<br>
+            <span style="font-size:13px">${pin.notizVorschau || 'Keine Textnotiz'}</span><br>
+            <a href="${gmapsUrl}" target="_blank" style="color:#6366f1;font-size:12px;margin-top:4px;display:inline-block">
+              📍 In Google Maps / Street View öffnen →
+            </a>
+          </div>
+        `);
       markersRef.current.push(marker);
     });
+
     if (pins.length > 0) {
       try {
         const gruppe = L.featureGroup(markersRef.current);
@@ -230,73 +275,56 @@ function KarteMitPins({ pins, onPinHinzufuegen, onPinLoeschen }) {
     }
   }, [pins]);
 
-  const handleGPS = () => {
-    if (!navigator.geolocation) { setFehler('GPS nicht unterstützt.'); return; }
-    setLaedt(true); setFehler('');
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const map = mapInstanceRef.current;
-        if (map) map.setView([pos.coords.latitude, pos.coords.longitude], 16);
-        onPinHinzufuegen({
-          id: Date.now(),
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude,
-          notiz: notizText,
-          zeit: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-          genauigkeit: Math.round(pos.coords.accuracy),
-        });
-        setNotizText('');
-        setLaedt(false);
-      },
-      (err) => { setFehler('GPS: ' + err.message); setLaedt(false); },
-      { enableHighAccuracy: true, timeout: 15000 }
-    );
-  };
-
   return (
     <div className="space-y-3">
+      {/* Layer-Toggle */}
       <div className="flex gap-2">
-        <input type="text" value={notizText} onChange={e => setNotizText(e.target.value)}
-          placeholder="Notiz zur aktuellen Position..."
-          className="input-field text-sm"
-          onKeyDown={e => e.key === 'Enter' && handleGPS()} />
-        <button onClick={handleGPS} disabled={laedt}
-          className="btn flex-shrink-0 bg-emerald-600 text-white hover:bg-emerald-700 focus:ring-emerald-500 shadow-emerald-200 shadow-md">
-          {laedt
-            ? <span className="animate-spin text-lg leading-none">⟳</span>
-            : <MapPin size={18} />}
-          <span className="hidden sm:inline">{laedt ? 'Suche GPS...' : 'Position merken'}</span>
+        <button onClick={() => setKartentyp('satellit')}
+          className={`px-3 py-1.5 rounded-xl text-sm font-medium border-2 transition ${kartentyp === 'satellit' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-500'}`}>
+          🛰️ Satellit
+        </button>
+        <button onClick={() => setKartentyp('strasse')}
+          className={`px-3 py-1.5 rounded-xl text-sm font-medium border-2 transition ${kartentyp === 'strasse' ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-200 text-slate-500'}`}>
+          🗺️ Straßenkarte
         </button>
       </div>
 
-      {fehler && <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-lg">{fehler}</p>}
-
       {/* Karte */}
       <div ref={mapRef} className="w-full rounded-xl border border-slate-200 overflow-hidden"
-        style={{ height: '350px' }} />
+        style={{ height: '400px' }} />
 
       {/* Pins Liste */}
-      {pins.length > 0 && (
+      {pins.length > 0 ? (
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-slate-500">{pins.length} Position(en) gespeichert:</p>
-          {pins.map((pin, i) => (
-            <div key={pin.id} className="flex items-start gap-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl group">
-              <div className="bg-emerald-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                {i + 1}
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{pins.length} Position(en)</p>
+          {pins.map((pin) => (
+            <div key={pin.id} className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-100 rounded-xl group">
+              <div className="w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+                {pin.nummer}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-700">{pin.notiz || 'Kein Text'}</p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {pin.zeit} · {pin.lat.toFixed(5)}, {pin.lng.toFixed(5)} · ±{pin.genauigkeit}m
-                </p>
+                <p className="text-sm font-medium text-slate-700">{pin.notizVorschau || 'Keine Textnotiz'}</p>
+                <p className="text-xs text-slate-400">{pin.zeit} · {pin.lat.toFixed(5)}, {pin.lng.toFixed(5)}</p>
               </div>
-              <button onClick={() => onPinLoeschen(pin.id)}
-                className="text-slate-300 hover:text-red-500 transition opacity-0 group-hover:opacity-100">
-                <Trash2 size={14} />
-              </button>
+              <div className="flex gap-1">
+                {onSeiteOeffnen && (
+                  <button onClick={() => onSeiteOeffnen(pin.seiteIndex)}
+                    title="Notizseite öffnen"
+                    className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition">
+                    <Pen size={14} />
+                  </button>
+                )}
+                <button onClick={() => onPinLoeschen(pin.id)}
+                  title="Pin löschen"
+                  className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition">
+                  <Trash2 size={14} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
+      ) : (
+        <p className="text-center text-slate-400 text-sm py-4">Noch keine Pins gesetzt – drücke den 📍 Button</p>
       )}
     </div>
   );
@@ -304,29 +332,71 @@ function KarteMitPins({ pins, onPinHinzufuegen, onPinLoeschen }) {
 
 // =================== HAUPTKOMPONENTE ===================
 function FahrtNotizblock({ lehrprobeId }) {
-  const [aktuelleSeite, setAktuelleSeite] = useState(0);
-  const [ansicht, setAnsicht] = useState('notiz'); // 'notiz' | 'karte'
+  const [ansicht, setAnsicht] = useState('notiz');
+  const [aktiverPin, setAktiverPin] = useState(null); // { id, nummer, zeit, seiteIndex }
+  const [gpsLaedt, setGpsLaedt] = useState(false);
+  const [bestaetigung, setBestaetigung] = useState('');
+
   const [seiten, setSeiten] = useState(() => {
-    const gespeichert = localStorage.getItem(`notizblock-seiten-${lehrprobeId}`);
-    return gespeichert ? JSON.parse(gespeichert) : [{ id: Date.now(), data: null }];
+    try { return JSON.parse(localStorage.getItem(`notizblock-seiten-${lehrprobeId}`)) || [{ id: Date.now(), data: null, pinId: null }]; }
+    catch { return [{ id: Date.now(), data: null, pinId: null }]; }
   });
+  const [aktuelleSeite, setAktuelleSeite] = useState(0);
+
   const [pins, setPins] = useState(() => {
-    const gespeichert = localStorage.getItem(`notizblock-pins-${lehrprobeId}`);
-    return gespeichert ? JSON.parse(gespeichert) : [];
+    try { return JSON.parse(localStorage.getItem(`notizblock-pins-${lehrprobeId}`)) || []; }
+    catch { return []; }
   });
 
-  const speichernSeiten = (neueSeiten) => {
-    setSeiten(neueSeiten);
-    localStorage.setItem(`notizblock-seiten-${lehrprobeId}`, JSON.stringify(neueSeiten));
+  const speichernSeiten = (s) => { setSeiten(s); localStorage.setItem(`notizblock-seiten-${lehrprobeId}`, JSON.stringify(s)); };
+  const speichernPins = (p) => { setPins(p); localStorage.setItem(`notizblock-pins-${lehrprobeId}`, JSON.stringify(p)); };
+
+  const handlePinStarten = () => {
+    if (aktiverPin) { handlePinStoppen(); return; }
+    setGpsLaedt(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const neuerPin = {
+          id: Date.now(),
+          nummer: pins.length + 1,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          genauigkeit: Math.round(pos.coords.accuracy),
+          zeit: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+          seiteIndex: seiten.length, // neue Seite wird angelegt
+          notizVorschau: '',
+        };
+
+        // Neue Seite für diesen Pin anlegen
+        const neueSeite = { id: Date.now() + 1, data: null, pinId: neuerPin.id };
+        const neueSeiten = [...seiten, neueSeite];
+        speichernSeiten(neueSeiten);
+        speichernPins([...pins, neuerPin]);
+        setAktiverPin({ ...neuerPin, seiteIndex: neueSeiten.length - 1 });
+        setAktuelleSeite(neueSeiten.length - 1);
+        setGpsLaedt(false);
+        setBestaetigung(`📍 Pin #${neuerPin.nummer} gesetzt`);
+        setTimeout(() => setBestaetigung(''), 2000);
+        setAnsicht('notiz');
+      },
+      (err) => { setGpsLaedt(false); alert('GPS nicht verfügbar: ' + err.message); },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
   };
 
-  const speichernPins = (neuePins) => {
-    setPins(neuePins);
-    localStorage.setItem(`notizblock-pins-${lehrprobeId}`, JSON.stringify(neuePins));
+  const handlePinStoppen = () => {
+    setAktiverPin(null);
+    setBestaetigung('✓ Notiz zugeordnet');
+    setTimeout(() => setBestaetigung(''), 2000);
+  };
+
+  const seiteSpeichern = (data) => {
+    const neueSeiten = seiten.map((s, i) => i === aktuelleSeite ? { ...s, data } : s);
+    speichernSeiten(neueSeiten);
   };
 
   const seiteHinzufuegen = () => {
-    const neueSeiten = [...seiten, { id: Date.now(), data: null }];
+    const neueSeiten = [...seiten, { id: Date.now(), data: null, pinId: null }];
     speichernSeiten(neueSeiten);
     setAktuelleSeite(neueSeiten.length - 1);
   };
@@ -339,26 +409,29 @@ function FahrtNotizblock({ lehrprobeId }) {
     setAktuelleSeite(Math.min(aktuelleSeite, neueSeiten.length - 1));
   };
 
-  const seiteSpeichern = (data) => {
-    const neueSeiten = seiten.map((s, i) => i === aktuelleSeite ? { ...s, data } : s);
-    speichernSeiten(neueSeiten);
-  };
-
   const exportSeite = () => {
     const seite = seiten[aktuelleSeite];
-    if (!seite.data) return;
+    if (!seite?.data) return;
     const a = document.createElement('a');
     a.href = seite.data;
     a.download = `notiz-seite-${aktuelleSeite + 1}.png`;
     a.click();
   };
 
+  const pinLoeschen = (id) => {
+    speichernPins(pins.filter(p => p.id !== id));
+    if (aktiverPin?.id === id) setAktiverPin(null);
+  };
+
+  // Pin-Seite zugehörig?
+  const aktuellerPinFuerSeite = pins.find(p => p.seiteIndex === aktuelleSeite);
+
   return (
     <div className="card overflow-hidden">
       {/* Header */}
       <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-5 py-4 text-white">
         <div className="flex items-center justify-between">
-          <h3 className="font-bold text-lg">Notizblock & Karte</h3>
+          <h3 className="font-bold text-lg">Notizblock & Kartenpins</h3>
           <div className="flex gap-1 bg-white/20 rounded-xl p-1">
             <button onClick={() => setAnsicht('notiz')}
               className={`px-3 py-1 rounded-lg text-sm font-medium transition ${ansicht === 'notiz' ? 'bg-white text-violet-700' : 'text-white hover:bg-white/20'}`}>
@@ -383,46 +456,88 @@ function FahrtNotizblock({ lehrprobeId }) {
                   className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition">
                   <ChevronLeft size={16} />
                 </button>
-                <span className="text-sm font-semibold text-slate-700 px-2">
-                  Seite {aktuelleSeite + 1} / {seiten.length}
-                </span>
+                <div className="text-center">
+                  <span className="text-sm font-semibold text-slate-700">
+                    Seite {aktuelleSeite + 1} / {seiten.length}
+                  </span>
+                  {aktuellerPinFuerSeite && (
+                    <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-medium">
+                      Pin #{aktuellerPinFuerSeite.nummer}
+                    </span>
+                  )}
+                </div>
                 <button onClick={() => setAktuelleSeite(Math.min(seiten.length - 1, aktuelleSeite + 1))}
                   disabled={aktuelleSeite === seiten.length - 1}
                   className="p-1.5 rounded-lg border border-slate-200 disabled:opacity-30 hover:bg-slate-50 transition">
                   <ChevronRight size={16} />
                 </button>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5">
                 <button onClick={exportSeite} title="Als PNG speichern"
                   className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 transition">
-                  <Download size={16} />
+                  <Download size={15} />
                 </button>
                 <button onClick={seiteLoeschen} title="Seite löschen"
                   className="p-1.5 rounded-lg border border-slate-200 text-red-400 hover:bg-red-50 transition">
-                  <Trash2 size={16} />
+                  <Trash2 size={15} />
                 </button>
                 <button onClick={seiteHinzufuegen}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 transition">
-                  <Plus size={15} /> Neue Seite
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-medium hover:bg-violet-700 transition">
+                  <Plus size={14} /> Seite
                 </button>
               </div>
             </div>
 
             <Zeichenflaeche
-              key={seiten[aktuelleSeite].id}
-              seiteId={seiten[aktuelleSeite].id}
-              gespeicherteData={seiten[aktuelleSeite].data}
+              key={seiten[aktuelleSeite]?.id}
+              seiteId={seiten[aktuelleSeite]?.id}
+              gespeicherteData={seiten[aktuelleSeite]?.data}
               onSpeichern={seiteSpeichern}
+              aktiverPin={aktiverPin}
             />
           </>
         ) : (
-          <KarteMitPins
+          <Karte
             pins={pins}
-            onPinHinzufuegen={(pin) => speichernPins([...pins, pin])}
-            onPinLoeschen={(id) => speichernPins(pins.filter(p => p.id !== id))}
+            onPinLoeschen={pinLoeschen}
+            onSeiteOeffnen={(seiteIndex) => { setAktuelleSeite(seiteIndex); setAnsicht('notiz'); }}
           />
         )}
       </div>
+
+      {/* Bestätigung Toast */}
+      {bestaetigung && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-sm font-medium px-4 py-2 rounded-xl shadow-lg z-50 animate-pulse">
+          {bestaetigung}
+        </div>
+      )}
+
+      {/* Floating Action Button */}
+      <button
+        onClick={handlePinStarten}
+        disabled={gpsLaedt}
+        className={`fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-2xl flex items-center justify-center transition-all active:scale-95 ${
+          aktiverPin
+            ? 'bg-red-500 hover:bg-red-600 shadow-red-300'
+            : 'bg-emerald-500 hover:bg-emerald-600 shadow-emerald-300'
+        }`}
+        title={aktiverPin ? 'Notiz-Zuordnung beenden' : 'Position merken & neue Notizseite öffnen'}
+      >
+        {gpsLaedt ? (
+          <span className="text-white text-2xl animate-spin">⟳</span>
+        ) : aktiverPin ? (
+          <Square size={28} className="text-white" fill="white" />
+        ) : (
+          <MapPin size={28} className="text-white" />
+        )}
+      </button>
+
+      {/* Pin-Status-Banner */}
+      {aktiverPin && (
+        <div className="fixed bottom-24 right-6 z-50 bg-red-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-lg">
+          📍 Pin #{aktiverPin.nummer} aktiv
+        </div>
+      )}
     </div>
   );
 }
