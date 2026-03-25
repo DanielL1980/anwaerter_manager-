@@ -40,8 +40,7 @@ function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern, aktiverPin }) 
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const src = e.touches ? e.touches[0] : e;
-    return { x: (src.clientX - rect.left) * scaleX, y: (src.clientY - rect.top) * scaleY };
+    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
   };
 
   const karierungWiederherstellen = (ctx, pos, groesse) => {
@@ -62,7 +61,10 @@ function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern, aktiverPin }) 
 
   const startZeichnen = (e) => {
     e.preventDefault();
+    // Nur Stift (pen) und Touch erlauben, nicht Hand/Palm
+    if (e.pointerType === 'mouse') return;
     const canvas = canvasRef.current;
+    canvas.setPointerCapture(e.pointerId);
     const pos = getPos(e, canvas);
     setZeichnen(true);
     letzterPunkt.current = pos;
@@ -161,13 +163,10 @@ function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern, aktiverPin }) 
           height={900}
           className="w-full"
           style={{ cursor: werkzeug === 'radierer' ? 'cell' : 'crosshair', touchAction: 'none', display: 'block' }}
-          onMouseDown={startZeichnen}
-          onMouseMove={weiterZeichnen}
-          onMouseUp={stopZeichnen}
-          onMouseLeave={stopZeichnen}
-          onTouchStart={startZeichnen}
-          onTouchMove={weiterZeichnen}
-          onTouchEnd={stopZeichnen}
+          onPointerDown={startZeichnen}
+          onPointerMove={weiterZeichnen}
+          onPointerUp={stopZeichnen}
+          onPointerCancel={stopZeichnen}
         />
       </div>
     </div>
