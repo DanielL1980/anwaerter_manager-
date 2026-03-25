@@ -55,21 +55,21 @@ const OAUTH_CONFIG = {
   google: {
     name: 'Google Drive',
     icon: '🟦',
-    authUrl: (clientId) => `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=token&scope=https://www.googleapis.com/auth/drive.file`,
+    authUrl: (clientId) => `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(window.location.href.split('?')[0].split('#')[0])}&response_type=token&scope=https://www.googleapis.com/auth/drive.file`,
     tokenKey: 'googleAccessToken',
     clientIdKey: 'googleClientId',
   },
   onedrive: {
     name: 'OneDrive',
     icon: '🔵',
-    authUrl: (clientId) => `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=token&scope=Files.ReadWrite`,
+    authUrl: (clientId) => `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(window.location.href.split('?')[0].split('#')[0])}&response_type=token&scope=Files.ReadWrite`,
     tokenKey: 'onedriveAccessToken',
     clientIdKey: 'onedriveClientId',
   },
   dropbox: {
     name: 'Dropbox',
     icon: '📦',
-    authUrl: (clientId) => `https://www.dropbox.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(window.location.origin)}&response_type=token`,
+    authUrl: (clientId) => `https://www.dropbox.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(window.location.href.split('?')[0].split('#')[0])}&response_type=token`,
     tokenKey: 'dropboxAccessToken',
     clientIdKey: 'dropboxClientId',
   },
@@ -121,11 +121,22 @@ function Teilen({ probe }) {
       }
 
       if (!token) {
-        // OAuth Flow starten
-        window.open(config.authUrl(clientId), '_blank', 'width=500,height=600');
-        setStatus(`Bitte melde dich bei ${config.name} an und füge danach den Access Token in den Einstellungen ein.`);
-        setLaedt('');
-        return;
+        // Token aus URL-Hash lesen (nach OAuth-Redirect)
+        const hash = window.location.hash;
+        if (hash.includes('access_token')) {
+          const params = new URLSearchParams(hash.substring(1));
+          token = params.get('access_token');
+          if (token) {
+            await setEinstellung(tokenKey, token);
+            window.location.hash = '';
+          }
+        }
+        if (!token) {
+          // Dienst merken und OAuth Flow starten
+          sessionStorage.setItem('oauthDienst', dienst);
+          window.location.href = config.authUrl(clientId);
+          return;
+        }
       }
 
       const html = getHTML();
