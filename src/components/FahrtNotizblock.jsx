@@ -2,176 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Plus, Trash2, MapPin, Eraser, Pen, ChevronLeft, ChevronRight, Download, Square, Map } from 'lucide-react';
 
 // =================== KARIERTES CANVAS ===================
-function zeichneKariert(canvas) {
-  const ctx = canvas.getContext('2d');
-  const raster = 30;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.strokeStyle = '#d1d5db';
-  ctx.lineWidth = 0.5;
-  for (let x = 0; x <= canvas.width; x += raster) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-  }
-  for (let y = 0; y <= canvas.height; y += raster) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-  }
-}
-
-function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern, aktiverPin }) {
-  const canvasRef = useRef(null);
-  const [zeichnen, setZeichnen] = useState(false);
-  const [werkzeug, setWerkzeug] = useState('stift');
-  const [farbe, setFarbe] = useState('#1e293b');
-  const [staerke, setStaerke] = useState(3);
-  const letzterPunkt = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    zeichneKariert(canvas);
-    if (gespeicherteData) {
-      const img = new Image();
-      img.onload = () => canvas.getContext('2d').drawImage(img, 0, 0);
-      img.src = gespeicherteData;
-    }
-  }, [seiteId]);
-
-  const getPos = (e, canvas) => {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
-  };
-
-  const karierungWiederherstellen = (ctx, pos, groesse) => {
-    const raster = 30;
-    const x1 = Math.floor((pos.x - groesse) / raster) * raster;
-    const x2 = Math.ceil((pos.x + groesse) / raster) * raster;
-    const y1 = Math.floor((pos.y - groesse) / raster) * raster;
-    const y2 = Math.ceil((pos.y + groesse) / raster) * raster;
-    ctx.strokeStyle = '#d1d5db';
-    ctx.lineWidth = 0.5;
-    for (let x = x1; x <= x2; x += raster) {
-      ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y2); ctx.stroke();
-    }
-    for (let y = y1; y <= y2; y += raster) {
-      ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
-    }
-  };
-
-  const startZeichnen = (e) => {
-    e.preventDefault();
-    // Nur Stift (pen) und Touch erlauben, nicht Hand/Palm
-    if (e.pointerType === 'mouse') return;
-    const canvas = canvasRef.current;
-    canvas.setPointerCapture(e.pointerId);
-    const pos = getPos(e, canvas);
-    setZeichnen(true);
-    letzterPunkt.current = pos;
-    const ctx = canvas.getContext('2d');
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, (werkzeug === 'radierer' ? staerke * 4 : staerke) / 2, 0, Math.PI * 2);
-    ctx.fillStyle = werkzeug === 'radierer' ? '#ffffff' : farbe;
-    ctx.fill();
-    if (werkzeug === 'radierer') karierungWiederherstellen(ctx, pos, staerke * 4);
-  };
-
-  const weiterZeichnen = (e) => {
-    if (!zeichnen) return;
-    e.preventDefault();
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const pos = getPos(e, canvas);
-    ctx.beginPath();
-    ctx.moveTo(letzterPunkt.current.x, letzterPunkt.current.y);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = werkzeug === 'radierer' ? '#ffffff' : farbe;
-    ctx.lineWidth = werkzeug === 'radierer' ? staerke * 4 : staerke;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-    if (werkzeug === 'radierer') karierungWiederherstellen(ctx, pos, staerke * 4);
-    letzterPunkt.current = pos;
-  };
-
-  const stopZeichnen = () => {
-    if (!zeichnen) return;
-    setZeichnen(false);
-    letzterPunkt.current = null;
-    onSpeichern(canvasRef.current.toDataURL());
-  };
-
-  const leeren = () => {
-    if (!window.confirm('Seite leeren?')) return;
-    const canvas = canvasRef.current;
-    zeichneKariert(canvas);
-    onSpeichern(canvas.toDataURL());
-  };
-
-  const FARBEN = ['#1e293b', '#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6'];
-
-  return (
-    <div className="space-y-2">
-      {/* Pin-Indikator */}
-      {aktiverPin && (
-        <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl">
-          <div className="w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
-            {aktiverPin.nummer}
-          </div>
-          <span className="text-sm text-red-700 font-medium">
-            Notiz wird Pin #{aktiverPin.nummer} zugeordnet ({aktiverPin.zeit})
-          </span>
-        </div>
-      )}
-
-      {/* Werkzeugleiste */}
-      <div className="flex flex-wrap items-center gap-2 p-2.5 bg-slate-50 rounded-xl border border-slate-200">
-        <div className="flex gap-1">
-          <button onClick={() => setWerkzeug('stift')}
-            className={`p-2 rounded-lg transition ${werkzeug === 'stift' ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
-            <Pen size={16} />
-          </button>
-          <button onClick={() => setWerkzeug('radierer')}
-            className={`p-2 rounded-lg transition ${werkzeug === 'radierer' ? 'bg-slate-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'}`}>
-            <Eraser size={16} />
-          </button>
-        </div>
-        <div className="flex gap-1.5">
-          {FARBEN.map(f => (
-            <button key={f} onClick={() => { setFarbe(f); setWerkzeug('stift'); }}
-              className={`w-6 h-6 rounded-full border-2 transition-transform ${farbe === f && werkzeug === 'stift' ? 'border-slate-700 scale-125' : 'border-transparent'}`}
-              style={{ backgroundColor: f }} />
-          ))}
-        </div>
-        <div className="flex items-center gap-2 ml-auto">
-          <span className="text-xs text-slate-500">Stärke:</span>
-          <input type="range" min="1" max="20" value={staerke}
-            onChange={e => setStaerke(Number(e.target.value))} className="w-16" />
-          <span className="text-xs font-bold text-slate-600 w-4">{staerke}</span>
-        </div>
-        <button onClick={leeren}
-          className="p-2 rounded-lg bg-white border border-slate-200 text-red-400 hover:bg-red-50 transition">
-          <Trash2 size={16} />
-        </button>
-      </div>
-
-      {/* Canvas */}
-      <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm" style={{ touchAction: 'none' }}>
-        <canvas
-          ref={canvasRef}
-          width={1200}
-          height={900}
-          className="w-full"
-          style={{ cursor: werkzeug === 'radierer' ? 'cell' : 'crosshair', touchAction: 'none', display: 'block' }}
-          onPointerDown={startZeichnen}
-          onPointerMove={weiterZeichnen}
-          onPointerUp={stopZeichnen}
-          onPointerCancel={stopZeichnen}
-        />
-      </div>
-    </div>
-  );
-}
+import Zeichenflaeche from './Zeichenflaeche';
 
 // =================== KARTE ===================
 function Karte({ pins, onPinLoeschen, onSeiteOeffnen }) {
@@ -261,7 +92,7 @@ function Karte({ pins, onPinLoeschen, onSeiteOeffnen }) {
         .bindPopup(`
           <div style="min-width:200px">
             <b style="color:#ef4444">Pin #${pin.nummer}</b> &nbsp;·&nbsp; ${pin.zeit}<br>
-            <span style="font-size:13px">${pin.notizVorschau || 'Keine Textnotiz'}</span><br>
+            <span style="font-size:13px">${pin.notizVorschau || '✏️ Handschriftliche Notiz vorhanden'}</span><br>
             <a href="${gmapsUrl}" target="_blank" style="color:#6366f1;font-size:12px;margin-top:4px;display:inline-block">
               📍 In Google Maps / Street View öffnen →
             </a>
@@ -307,7 +138,7 @@ function Karte({ pins, onPinLoeschen, onSeiteOeffnen }) {
                 {pin.nummer}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-700">{pin.notizVorschau || 'Keine Textnotiz'}</p>
+                <p className="text-sm font-medium text-slate-700">{pin.notizVorschau || '✏️ Handschriftliche Notiz vorhanden'}</p>
                 <p className="text-xs text-slate-400">{pin.zeit} · {pin.lat.toFixed(5)}, {pin.lng.toFixed(5)}</p>
               </div>
               <div className="flex gap-1">
