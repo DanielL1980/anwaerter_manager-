@@ -6,7 +6,10 @@ import LehrprobeDetail from './pages/LehrprobeDetail';
 import AnwaerterProfil from './pages/AnwaerterProfil';
 import Einstellungen from './pages/Einstellungen';
 
+import { useOAuthToken } from './hooks/useOAuthToken';
+
 function App() {
+  useOAuthToken();
   return (
     <BrowserRouter basename="/anwaerter_manager-">
       <Routes>
