@@ -28,7 +28,7 @@ function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern, aktiverPin }) 
   const letzterPunkt = useRef(null);
 
   // Auswahlrahmen-State
-  const auswahlStart = useRef(null);
+  const auswahlStartRef = useRef(null);
   const auswahlRef = useRef(null); // {x,y,w,h}
   const [auswahlRect, setAuswahlRect] = useState(null);
 
@@ -138,7 +138,7 @@ function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern, aktiverPin }) 
     e.preventDefault();
     canvasRef.current.setPointerCapture(e.pointerId);
     const pos = getPos(e);
-    auswahlStart.current = pos;
+    auswahlStartRef.current = pos;
     setAuswahlRect(null);
     auswahlRef.current = null;
     // Snapshot speichern
@@ -147,13 +147,13 @@ function Zeichenflaeche({ seiteId, gespeicherteData, onSpeichern, aktiverPin }) 
   };
 
   const auswahlMove = (e) => {
-    if (!zeichnenRef.current || !auswahlStart.current) return;
+    if (!zeichnenRef.current || !auswahlStartRef.current) return;
     e.preventDefault();
     const pos = getPos(e);
-    const x = Math.min(auswahlStart.current.x, pos.x);
-    const y = Math.min(auswahlStart.current.y, pos.y);
-    const w = Math.abs(pos.x - auswahlStart.current.x);
-    const h = Math.abs(pos.y - auswahlStart.current.y);
+    const x = Math.min(auswahlStartRef.current.x, pos.x);
+    const y = Math.min(auswahlStartRef.current.y, pos.y);
+    const w = Math.abs(pos.x - auswahlStartRef.current.x);
+    const h = Math.abs(pos.y - auswahlStartRef.current.y);
 
     // Snapshot wiederherstellen und Rahmen zeichnen
     const canvas = canvasRef.current;
