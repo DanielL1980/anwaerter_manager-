@@ -7,6 +7,7 @@ import GespraechsnotizBlock from '../components/GespraechsnotizBlock';
 import GesetzesLinks from '../components/GesetzesLinks';
 import FahrtNotizblock from '../components/FahrtNotizblock';
 import TheorieNotizblock from '../components/TheorieNotizblock';
+import Stoppuhr from '../components/Stoppuhr';
 import { ChevronLeft, Calendar, Printer, Trash2, User, GraduationCap, Car } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -92,16 +93,16 @@ function LehrprobeDetail() {
             </div>
           </div>
         </div>
-        <div className={`px-6 py-3 ${istFahrstunde ? 'bg-blue-50 border-blue-100' : 'bg-indigo-50 border-indigo-100'} border-t flex items-center gap-2 text-sm font-medium ${istFahrstunde ? 'text-blue-700' : 'text-indigo-700'}`}>
-          <Calendar size={15} />
-          <span>{format(new Date(probe.datum), 'EEEE, dd. MMMM yyyy', { locale: de })}</span>
+        <div className={`px-6 py-3 ${istFahrstunde ? 'bg-blue-50 border-blue-100' : 'bg-indigo-50 border-indigo-100'} border-t flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium ${istFahrstunde ? 'text-blue-700' : 'text-indigo-700'}`}>
+          <span className="flex items-center gap-1.5"><Calendar size={14} />{format(new Date(probe.datum), 'EEEE, dd. MMMM yyyy', { locale: de })}</span>
           {probe.zeitVon && probe.zeitBis && (
-            <>
-              <span className="mx-1">·</span>
-              <span>{probe.zeitVon} – {probe.zeitBis} Uhr</span>
-              {(() => { const min = (parseInt(probe.zeitBis.split(":")[0])*60+parseInt(probe.zeitBis.split(":")[1]))-(parseInt(probe.zeitVon.split(":")[0])*60+parseInt(probe.zeitVon.split(":")[1])); const diff = 45-min; return <span className="ml-1 font-bold">({min} Min.{diff !== 0 ? ` / Diff: ${diff > 0 ? "+" : ""}${-diff} Min.` : " ✓"})</span>; })()}
-            </>
+            <span>🕐 Geplant: {probe.zeitVon}–{probe.zeitBis} Uhr ({(parseInt(probe.zeitBis.split(':')[0])*60+parseInt(probe.zeitBis.split(':')[1]))-(parseInt(probe.zeitVon.split(':')[0])*60+parseInt(probe.zeitVon.split(':')[1])} Min.)</span>
           )}
+          {probe.zeitTatsaechlichVon && probe.zeitTatsaechlichBis && (
+            <span>⏱ Tatsächlich: {probe.zeitTatsaechlichVon}–{probe.zeitTatsaechlichBis} Uhr</span>
+          )}
+          {probe.ausbildungswoche && <span>· Woche {probe.ausbildungswoche}</span>}
+          {probe.ausbildungsstunde && <span>· Stunde {probe.ausbildungsstunde}</span>}
         </div>
       </div>
 
@@ -114,6 +115,7 @@ function LehrprobeDetail() {
       </div>
 
       {!istFahrstunde && <TheorieNotizblock lehrprobeId={probe.id} />}
+      <Stoppuhr lehrprobeId={probe.id} probe={probe} />
 
       <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}
