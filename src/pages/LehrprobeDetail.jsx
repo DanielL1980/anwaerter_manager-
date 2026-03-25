@@ -8,6 +8,7 @@ import GesetzesLinks from '../components/GesetzesLinks';
 import FahrtNotizblock from '../components/FahrtNotizblock';
 import TheorieNotizblock from '../components/TheorieNotizblock';
 import Stoppuhr from '../components/Stoppuhr';
+import Teilen from '../components/Teilen';
 import { ChevronLeft, Calendar, Printer, Trash2, User, GraduationCap, Car } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -64,6 +65,7 @@ function LehrprobeDetail() {
       <div className="flex justify-between items-center mb-6 no-print">
         <Link to="/" className="btn btn-secondary"><ChevronLeft size={18} /><span>Übersicht</span></Link>
         <div className="flex gap-2">
+          <Teilen probe={probe} />
           <button onClick={() => window.print()} className="btn btn-secondary">
             <Printer size={18} /><span className="hidden sm:inline">Drucken / PDF</span>
           </button>
@@ -96,7 +98,7 @@ function LehrprobeDetail() {
         <div className={`px-6 py-3 ${istFahrstunde ? 'bg-blue-50 border-blue-100' : 'bg-indigo-50 border-indigo-100'} border-t flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium ${istFahrstunde ? 'text-blue-700' : 'text-indigo-700'}`}>
           <span className="flex items-center gap-1.5"><Calendar size={14} />{format(new Date(probe.datum), 'EEEE, dd. MMMM yyyy', { locale: de })}</span>
           {probe.zeitVon && probe.zeitBis && (
-            <span>🕐 Geplant: {probe.zeitVon}–{probe.zeitBis} Uhr ({(parseInt(probe.zeitBis.split(':')[0])*60+parseInt(probe.zeitBis.split(':')[1]))-(parseInt(probe.zeitVon.split(':')[0])*60+parseInt(probe.zeitVon.split(':')[1]))} Min.)</span>
+            <span>🕐 Geplant: {probe.zeitVon}–{probe.zeitBis} Uhr ({(parseInt(probe.zeitBis.split(':')[0])*60+parseInt(probe.zeitBis.split(':')[1]))-(parseInt(probe.zeitVon.split(':')[0])*60+parseInt(probe.zeitVon.split(':')[1])} Min.)</span>
           )}
           {probe.zeitTatsaechlichVon && probe.zeitTatsaechlichBis && (
             <span>⏱ Tatsächlich: {probe.zeitTatsaechlichVon}–{probe.zeitTatsaechlichBis} Uhr</span>
