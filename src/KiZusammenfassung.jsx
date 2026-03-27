@@ -57,45 +57,46 @@ Wichtige Anweisungen:
 }
 
 function erstellePromptFahrstunde(durchschnitte, notizen, lehrprobe) {
-  let promptText = `Du bist ein erfahrener Ausbildungsfahrlehrer und Fahrlehrerausbilder mit tiefem Fachwissen in der Fahrerlaubnis-Verordnung (FeV), der Fahrschüler-Ausbildungsordnung (FahrschAusbO) und dem Straßenverkehrsrecht (StVO, StVG, StVZO). Deine Aufgabe ist es, eine strukturierte, stichpunktartige Analyse einer Fahrstunde zu erstellen, die als Grundlage für ein mindestens 20-minütiges Auswertungsgespräch mit dem Fahrlehreranwärter dient.
+  let promptText = `Du bist ein erfahrener, empathischer Ausbildungsfahrlehrer und Mentor. Du begleitest einen Fahrlehreranwärter auf seinem Weg zur Fahrlehrerlizenz. Deine Rückmeldungen sind menschlich, wertschätzend und konstruktiv – du siehst dich als Unterstützer, nicht als Richter. Du kennst die Nervosität und den Druck den ein Anwärter bei einer Beobachtungsfahrt erlebt, und nimmst das in deiner Analyse Rücksicht darauf.
 
 Anwärter: ${lehrprobe.prüfling}
 Thema der Fahrstunde: ${lehrprobe.thema}
 ${lehrprobe.stufe ? `Ausbildungsstufe: ${lehrprobe.stufe}` : ''}
+${lehrprobe.ausbildungswoche ? `Ausbildungswoche: ${lehrprobe.ausbildungswoche}` : ''}
 
-Erstelle die Analyse nach folgender Struktur – ausschließlich in Stichpunkten:
+Erstelle eine strukturierte Analyse als Grundlage für ein Auswertungsgespräch. Schreibe in Stichpunkten, aber formuliere sie menschlich und empathisch – nicht kalt oder bürokratisch.
 
-## 1. Gesamtüberblick
-- Kurzeinschätzung des Gesamteindrucks der Fahrstunde
+## 1. Erster Eindruck & Stärken
+- Was hat ${lehrprobe.prüfling} in dieser Fahrstunde besonders gut gemacht? (Durchschnitt > 3.5)
+- Wo zeigt sich Sicherheit, Routine oder pädagogisches Gespür?
+- Formuliere anerkennend und konkret – nenne spezifische Beobachtungen aus der Fahrt
 
-## 2. Analyse je Kompetenzbereich
-Für jeden Bereich (Einleitung, Didaktik/AGVA, Sicherheit, Kommunikation, Abschluss):
-- Beobachtungen: Was wurde konkret festgestellt?
-- Stärken: Was lief gut? (Durchschnitt > 3.5)
-- Entwicklungsfelder: Was braucht noch Arbeit? (Durchschnitt < 3.0)
-- Bezug zu Rechtsgrundlagen: Konkrete Paragraphen aus FeV, FahrschAusbO, StVO
-- Handlungsempfehlungen: Konkrete Verbesserungsvorschläge
+## 2. Entwicklungsfelder (konstruktiv formuliert)
+- Was kann noch wachsen? (Durchschnitt < 3.0)
+- Bereiche: Einleitung, AGVA-Didaktik, Sicherheit & Verkehrsregeln, Kommunikation, Abschlussbesprechung
+- Formuliere nicht als Fehler, sondern als nächsten Entwicklungsschritt
+- Bezug zu: § 1 FschAusbO, § 3 FschAusbO, relevante StVO-Paragraphen – kurz erklärt warum
 
-## 3. Rechtliche Einordnung
-- Anforderungen aus FeV und FahrschAusbO – erfüllt / nicht erfüllt?
-- Relevante Paragraphen mit Begründung
+## 3. Sicherheit & Rechtliches (praxisnah)
+- Wurden sicherheitsrelevante Aspekte ausreichend thematisiert?
+- Konkrete Paragraphen mit kurzer Begründung – nicht nur aufzählen
+- Formuliere so dass ${lehrprobe.prüfling} versteht warum das wichtig ist
 
-## 4. Pro / Kontra Gesamtbewertung
-- Pro: Was spricht für eine positive Entwicklung
-- Kontra: Was fehlt noch
+## 4. Gesprächsleitfaden
+- 4-6 offene Fragen die zur Selbstreflexion einladen
+- Beispiele: "Wie hast du die Reaktion des Fahrschülers wahrgenommen?", "Was würdest du beim nächsten Mal in der Einleitung anders machen?"
+- Fragen sollen Vertrauen aufbauen und eigenes Nachdenken fördern
 
-## 5. Gesprächsleitfaden
-- 5-8 Fragen zur Selbstreflexion
-- Hinweise für das Gespräch
-
-## 6. Nächste Schritte
-- Konkrete Entwicklungsziele für die nächste Fahrstunde
+## 5. Nächste Schritte
+- 2-3 konkrete, erreichbare Entwicklungsziele für die nächste Fahrstunde
+- Formuliere motivierend: was ${lehrprobe.prüfling} als nächstes ausprobieren oder vertiefen kann
 
 Wichtige Anweisungen:
-- Ausschließlich Stichpunkte
-- Konkrete Paragraphen nennen
-- Professionell, sachlich, wertschätzend
-- Note wird NICHT erwähnt`;
+- Stichpunkte, aber menschlich und empathisch formuliert
+- Nenne ${lehrprobe.prüfling} beim Namen wo es passt und sich natürlich anfühlt
+- Die Note wird NICHT erwähnt
+- Ton: wie ein erfahrener Mentor der seinen Schützling aufbauen und stärken will
+- Konkrete Paragraphen nennen wo relevant, aber immer mit Bezug zur Praxis`;
 
   promptText += `\n\nBewertungsdaten:\n- Einleitung: ${durchschnitte.einleitung_fahrt?.toFixed(2) || 'N/A'}\n- Didaktik/AGVA: ${durchschnitte.didaktik_fahrt?.toFixed(2) || 'N/A'}\n- Sicherheit: ${durchschnitte.sicherheit?.toFixed(2) || 'N/A'}\n- Kommunikation: ${durchschnitte.kommunikation_fahrt?.toFixed(2) || 'N/A'}\n- Abschluss: ${durchschnitte.abschluss_fahrt?.toFixed(2) || 'N/A'}`;
 
@@ -111,6 +112,8 @@ Wichtige Anweisungen:
 function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe, notizblockTexte }) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [kiText, setKiText] = useState('');
+  const [kopiert, setKopiert] = useState(false);
 
   const istFahrstunde = lehrprobe?.typ === 'fahrstunde';
 
@@ -150,6 +153,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe, notizblockTex
       const data = await response.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) throw new Error('Keine Antwort von der KI erhalten.');
+      setKiText(text);
       oeffneInTab(text, lehrprobe);
 
     } catch (e) {
@@ -158,6 +162,32 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe, notizblockTex
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleKopieren = async () => {
+    if (!kiText) return;
+    const istFahrstunde = lehrprobe?.typ === 'fahrstunde';
+    const html = `<html><body>
+      <h1 style="font-size:16pt;border-bottom:2px solid #000;padding-bottom:6px">
+        ${istFahrstunde ? 'KI-Fahrstunden-Analyse' : 'KI-Unterrichtsanalyse'}: ${lehrprobe.thema}
+      </h1>
+      <p style="color:#666;font-size:9pt;margin-bottom:12px">Anwärter: ${lehrprobe.prüfling} · ${lehrprobe.datum}</p>
+      <div style="font-size:10pt;line-height:1.6;white-space:pre-wrap">${kiText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+    </body></html>`;
+    try {
+      const blob = new Blob([html], { type: 'text/html' });
+      await navigator.clipboard.write([new ClipboardItem({ 'text/html': blob })]);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = kiText;
+      ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setKopiert(true);
+    setTimeout(() => setKopiert(false), 3000);
   };
 
   return (
@@ -169,16 +199,30 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe, notizblockTex
             {istFahrstunde ? 'Fahrstunden-Analyse' : 'Empathische Unterrichtsanalyse'} – öffnet in neuem Tab
           </p>
         </div>
-        <button onClick={handleGenerate} disabled={isLoading} className="btn btn-primary">
-          {isLoading ? <Loader size={20} className="animate-spin" /> : <Wand size={20} />}
-          <span>{isLoading ? 'Analysiere...' : 'Analyse erstellen'}</span>
-        </button>
+        <div className="flex gap-2">
+          {kiText && (
+            <button onClick={handleKopieren}
+              className={`btn ${kopiert ? 'bg-emerald-600 text-white' : 'btn-secondary'}`}
+              title="KI-Analyse in Zwischenablage kopieren">
+              {kopiert ? '✓ Kopiert!' : '📋 Kopieren'}
+            </button>
+          )}
+          <button onClick={handleGenerate} disabled={isLoading} className="btn btn-primary">
+            {isLoading ? <Loader size={20} className="animate-spin" /> : <Wand size={20} />}
+            <span>{isLoading ? 'Analysiere...' : 'Analyse erstellen'}</span>
+          </button>
+        </div>
       </div>
       {error && (
         <div className="mt-4 p-4 bg-red-100 text-red-800 border border-red-200 rounded-md flex gap-3">
           <AlertTriangle size={20} className="flex-shrink-0" />
           <p className="text-sm">{error}</p>
         </div>
+      )}
+      {kiText && !isLoading && (
+        <p className="text-xs text-slate-400 mt-3 text-center">
+          ✓ Analyse erstellt – Tab geöffnet oder 📋 Kopieren für Google Docs
+        </p>
       )}
     </div>
   );
