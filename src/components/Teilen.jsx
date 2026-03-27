@@ -91,6 +91,62 @@ function Teilen({ probe }) {
 
   const getHTML = () => erstelleDruckHTML(probe, auswertung, null);
 
+  const handleZwischenablage = async () => {
+    const istFahrstunde = probe.typ === 'fahrstunde';
+    const kriterien = istFahrstunde
+      ? (await import('../data/kriterien')).KRITERIEN_FAHRSTUNDE
+      : (await import('../data/kriterien')).KRITERIEN_THEORIE;
+
+    const SKALA = { 5: '++ (Sehr Gut)', 4: '+ (Gut)', 3: 'o (Befriedigend)', 2: '- (Ausreichend)', 1: '-- (Mangelhaft)' };
+
+    let text = '';
+    text += `${istFahrstunde ? 'AUSWERTEBOGEN FAHRSTUNDEN' : 'AUSWERTEBOGEN THEORETISCHER UNTERRICHT'}\n`;
+    text += `${'='.repeat(60)}\n\n`;
+    text += `Anwärter: ${probe.prüfling}\n`;
+    text += `Thema: ${probe.thema}\n`;
+    text += `Datum: ${probe.datum}\n`;
+    if (probe.zeitVon) text += `Geplante Zeit: ${probe.zeitVon} – ${probe.zeitBis} Uhr\n`;
+    if (probe.zeitTatsaechlichVon) text += `Tatsächliche Zeit: ${probe.zeitTatsaechlichVon} – ${probe.zeitTatsaechlichBis} Uhr\n`;
+    if (probe.ausbildungswoche) text += `Ausbildungswoche: ${probe.ausbildungswoche}\n`;
+    text += '\n';
+
+    if (auswertung) {
+      kriterien.forEach(kategorie => {
+        text += `${kategorie.titel.toUpperCase()}\n`;
+        text += `${'-'.repeat(40)}\n`;
+        kategorie.punkte.forEach(punkt => {
+          const id = `${kategorie.id}_${punkt.id}`;
+          const bewertung = auswertung.punkte?.[id];
+          const notiz = auswertung.notizen?.[id];
+          text += `• ${punkt.text}: ${bewertung ? SKALA[bewertung] : 'nicht bewertet'}\n`;
+          if (notiz) text += `  Notiz: ${notiz}\n`;
+        });
+        text += '\n';
+      });
+
+      if (auswertung.gesamtnote) {
+        text += `GESAMTEINDRUCK\n${'-'.repeat(40)}\n${auswertung.gesamtnote}\n\n`;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus('✓ Text kopiert! Öffne Google Docs und drücke lange auf das Textfeld → Einfügen');
+    } catch (e) {
+      // Fallback für ältere Browser
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      setStatus('✓ Text kopiert! Öffne Google Docs und drücke lange auf das Textfeld → Einfügen');
+    }
+  };
+
   const handleEmail = async () => {
     const emailKey = await getEinstellung('emailAdresse');
     const betreff = encodeURIComponent(`Auswertung: ${probe.prüfling} – ${probe.thema}`);
@@ -206,6 +262,16 @@ function Teilen({ probe }) {
                 <div>
                   <p className="font-bold text-slate-800">Drucken / PDF</p>
                   <p className="text-xs text-slate-500">Öffnet sauberes A4-Layout in neuem Tab</p>
+                </div>
+              </button>
+
+              {/* Zwischenablage */}
+              <button onClick={handleZwischenablage}
+                className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-emerald-300 bg-emerald-50 hover:border-emerald-400 hover:bg-emerald-100 transition text-left">
+                <span className="text-2xl">📋</span>
+                <div>
+                  <p className="font-bold text-slate-800">In Zwischenablage kopieren</p>
+                  <p className="text-xs text-slate-600">Text kopieren → Google Docs öffnen → Einfügen</p>
                 </div>
               </button>
 
