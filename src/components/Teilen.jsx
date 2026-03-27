@@ -93,57 +93,87 @@ function Teilen({ probe }) {
 
   const handleZwischenablage = async () => {
     const istFahrstunde = probe.typ === 'fahrstunde';
-    const kriterien = istFahrstunde
-      ? (await import('../data/kriterien')).KRITERIEN_FAHRSTUNDE
-      : (await import('../data/kriterien')).KRITERIEN_THEORIE;
+    const { KRITERIEN_FAHRSTUNDE, KRITERIEN_THEORIE } = await import('../data/kriterien');
+    const { berechneKategorieDurchschnitte, berechneGewichteteNote } = await import('../lib/berechnungen');
+    const kriterien = istFahrstunde ? KRITERIEN_FAHRSTUNDE : KRITERIEN_THEORIE;
+    const SKALA = { 5: '++', 4: '+', 3: 'o', 2: '-', 1: '--' };
+    const SKALA_TEXT = { 5: 'Sehr Gut', 4: 'Gut', 3: 'Befriedigend', 2: 'Ausreichend', 1: 'Mangelhaft' };
+    const noteErgebnis = auswertung ? berechneGewichteteNote(auswertung) : null;
 
-    const SKALA = { 5: '++ (Sehr Gut)', 4: '+ (Gut)', 3: 'o (Befriedigend)', 2: '- (Ausreichend)', 1: '-- (Mangelhaft)' };
+    // Kopfzeile
+    let html = `<html><body>`;
+    html += `<h1 style="font-size:16pt;text-align:center;border-bottom:2px solid #000;padding-bottom:6px">`;
+    html += `${istFahrstunde ? 'Auswertebogen Fahrstunden' : 'Auswertebogen Theoretischer Unterricht'}</h1>`;
 
-    let text = '';
-    text += `${istFahrstunde ? 'AUSWERTEBOGEN FAHRSTUNDEN' : 'AUSWERTEBOGEN THEORETISCHER UNTERRICHT'}\n`;
-    text += `${'='.repeat(60)}\n\n`;
-    text += `Anwärter: ${probe.prüfling}\n`;
-    text += `Thema: ${probe.thema}\n`;
-    text += `Datum: ${probe.datum}\n`;
-    if (probe.zeitVon) text += `Geplante Zeit: ${probe.zeitVon} – ${probe.zeitBis} Uhr\n`;
-    if (probe.zeitTatsaechlichVon) text += `Tatsächliche Zeit: ${probe.zeitTatsaechlichVon} – ${probe.zeitTatsaechlichBis} Uhr\n`;
-    if (probe.ausbildungswoche) text += `Ausbildungswoche: ${probe.ausbildungswoche}\n`;
-    text += '\n';
+    // Metadaten-Tabelle
+    html += `<table border="1" cellpadding="4" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:10pt;margin-bottom:12px">`;
+    html += `<tr><td><b>Anwärter:</b> ${probe.prüfling}</td><td><b>Thema:</b> ${probe.thema}</td></tr>`;
+    html += `<tr><td><b>Datum:</b> ${probe.datum}</td><td><b>${istFahrstunde ? 'Ausbildungsstufe' : 'Art'}:</b> ${probe.stufe || probe.unterrichtstyp || '–'}</td></tr>`;
+    if (probe.zeitVon) {
+      const geplantMin = (parseInt(probe.zeitBis.split(':')[0])*60+parseInt(probe.zeitBis.split(':')[1]))-(parseInt(probe.zeitVon.split(':')[0])*60+parseInt(probe.zeitVon.split(':')[1]));
+      html += `<tr><td><b>Geplante Zeit:</b> ${probe.zeitVon} – ${probe.zeitBis} Uhr (${geplantMin} Min.)</td>`;
+      if (probe.zeitTatsaechlichVon) {
+        const tatsMin = (parseInt(probe.zeitTatsaechlichBis.split(':')[0])*60+parseInt(probe.zeitTatsaechlichBis.split(':')[1]))-(parseInt(probe.zeitTatsaechlichVon.split(':')[0])*60+parseInt(probe.zeitTatsaechlichVon.split(':')[1]));
+        html += `<td><b>Tatsächliche Zeit:</b> ${probe.zeitTatsaechlichVon} – ${probe.zeitTatsaechlichBis} Uhr (${tatsMin} Min.)</td></tr>`;
+      } else { html += `<td></td></tr>`; }
+    }
+    if (probe.ausbildungswoche) html += `<tr><td><b>Ausbildungswoche:</b> ${probe.ausbildungswoche}</td><td><b>Ausbildungsstunde:</b> ${probe.ausbildungsstunde || '–'}</td></tr>`;
+    html += `</table>`;
 
-    if (auswertung) {
-      kriterien.forEach(kategorie => {
-        text += `${kategorie.titel.toUpperCase()}\n`;
-        text += `${'-'.repeat(40)}\n`;
-        kategorie.punkte.forEach(punkt => {
-          const id = `${kategorie.id}_${punkt.id}`;
-          const bewertung = auswertung.punkte?.[id];
-          const notiz = auswertung.notizen?.[id];
-          text += `• ${punkt.text}: ${bewertung ? SKALA[bewertung] : 'nicht bewertet'}\n`;
-          if (notiz) text += `  Notiz: ${notiz}\n`;
-        });
-        text += '\n';
+    // Bewertungsbögen
+    kriterien.forEach(kategorie => {
+      html += `<h2 style="font-size:11pt;background:#333;color:#fff;padding:4px 8px;margin-top:10px">`;
+      html += `${kategorie.titel}${kategorie.gewichtung > 1 ? ` (${kategorie.gewichtung}-fach gewichtet)` : ''}</h2>`;
+      html += `<table border="1" cellpadding="4" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:9pt">`;
+      html += `<tr style="background:#f0f0f0"><th style="width:40%;text-align:left">Kriterium</th><th style="width:8%">++</th><th style="width:8%">+</th><th style="width:8%">o</th><th style="width:8%">-</th><th style="width:8%">--</th><th style="width:20%;text-align:left">Notizen</th></tr>`;
+      kategorie.punkte.forEach(punkt => {
+        const id = `${kategorie.id}_${punkt.id}`;
+        const bew = auswertung?.punkte?.[id];
+        const notiz = auswertung?.notizen?.[id] || '';
+        html += `<tr><td>${punkt.text}</td>`;
+        [5,4,3,2,1].forEach(v => { html += `<td style="text-align:center">${bew === v ? '●' : '○'}</td>`; });
+        html += `<td>${notiz}</td></tr>`;
       });
+      html += `</table>`;
+    });
 
-      if (auswertung.gesamtnote) {
-        text += `GESAMTEINDRUCK\n${'-'.repeat(40)}\n${auswertung.gesamtnote}\n\n`;
-      }
+    // Notenberechnung
+    if (noteErgebnis) {
+      html += `<h2 style="font-size:11pt;margin-top:14px">Notenberechnung</h2>`;
+      html += `<table border="1" cellpadding="4" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:9pt">`;
+      html += `<tr style="background:#333;color:#fff">`;
+      kriterien.forEach(k => { html += `<th>${k.titel}<br/>(${k.gewichtung}-fach)</th>`; });
+      html += `<th>Gew. Index</th><th>Note</th></tr><tr>`;
+      const durchschnitte = berechneKategorieDurchschnitte(auswertung);
+      kriterien.forEach(k => { html += `<td style="text-align:center">${durchschnitte[k.id]?.toFixed(2) || '–'}</td>`; });
+      html += `<td style="text-align:center"><b>${noteErgebnis.index}</b></td>`;
+      html += `<td style="text-align:center;font-size:14pt"><b>${noteErgebnis.note}</b></td></tr></table>`;
+      html += `<p style="font-size:8pt;color:#666;margin-top:4px">sehr gut = 1,0; 1,3 | gut = 1,7; 2,0; 2,3 | befriedigend = 2,7; 3,0; 3,3 | ausreichend = 3,7; 4,0; 4,3 | mangelhaft = 4,7; 5,0; 5,3 | ungenügend = 5,7; 6,0</p>`;
     }
 
+    // Gesamteindruck
+    if (auswertung?.gesamtnote) {
+      html += `<h2 style="font-size:11pt;margin-top:14px">Gesamteindruck & Bemerkungen</h2>`;
+      html += `<div style="border:1px solid #ccc;padding:8px;font-size:9pt;white-space:pre-wrap">${auswertung.gesamtnote}</div>`;
+    }
+
+    html += `</body></html>`;
+
     try {
-      await navigator.clipboard.writeText(text);
-      setStatus('✓ Text kopiert! Öffne Google Docs und drücke lange auf das Textfeld → Einfügen');
+      const blob = new Blob([html], { type: 'text/html' });
+      const item = new ClipboardItem({ 'text/html': blob });
+      await navigator.clipboard.write([item]);
+      setStatus('✓ Formatierter Text kopiert! Öffne Google Docs → Neu → long-press → Einfügen');
     } catch (e) {
-      // Fallback für ältere Browser
+      // Fallback: Plain Text
       const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
+      ta.value = html.replace(/<[^>]+>/g, '');
+      ta.style.cssText = 'position:fixed;opacity:0';
       document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
+      ta.focus(); ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
-      setStatus('✓ Text kopiert! Öffne Google Docs und drücke lange auf das Textfeld → Einfügen');
+      setStatus('✓ Text kopiert (einfaches Format). Öffne Google Docs → long-press → Einfügen');
     }
   };
 
