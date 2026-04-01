@@ -1,0 +1,52 @@
+@media print {
+  /* Generelle Druckeinstellungen */
+  body {
+    background-color: #fff;
+    font-size: 10pt;
+  }
+
+  /* Verstecke alle UI-Elemente, die nicht gedruckt werden sollen */
+  header,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Stelle sicher, dass der Hauptinhalt den vollen Platz einnimmt */
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  /* Optimiere die Darstellung der Boxen */
+  .print-container {
+    box-shadow: none !important;
+    border: 1px solid #ccc;
+    margin-bottom: 1rem;
+    padding: 1rem;
+  }
+  
+  /* Verhindere Seitenumbrüche innerhalb von wichtigen Elementen */
+  .auswertebogen-kategorie, .info-box {
+    page-break-inside: avoid;
+  }
+
+  /* Optimiere die Textareas für den Druck */
+  textarea {
+    background-color: #f9f9f9 !important;
+    border: 1px dashed #ddd !important;
+    color: #000 !important;
+  }
+  
+  /* Sorge dafür, dass Radio-Buttons im Druck sichtbar sind */
+  .radio-print-label {
+    display: block;
+    margin-top: 4px;
+    font-weight: bold;
+    color: #000;
+  }
+  
+  .radio-container-print {
+    display: none;
+  }
+}
