@@ -103,6 +103,5 @@ export async function importiereDaten(data) {
 }
 
 // Aliase für Abwärtskompatibilität
-export const getLehrproben = getAllLehrproben;
 export const getGespraechsnotizForLehrprobe = getGespraechsnotiz;
 export const saveGespraechsnotiz = setGespraechsnotiz;
