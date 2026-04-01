@@ -101,3 +101,8 @@ export async function importiereDaten(data) {
   for (const lp of lehrproben) await db.put('lehrproben', lp);
   for (const a of auswertungen) await db.put('auswertungen', a);
 }
+
+// Aliase für Abwärtskompatibilität
+export const getLehrproben = getAllLehrproben;
+export const getGespraechsnotizForLehrprobe = getGespraechsnotiz;
+export const saveGespraechsnotiz = setGespraechsnotiz;
