@@ -51,6 +51,17 @@ function Layout({ user, onSignOut }) {
               title={darkMode ? 'Hell-Modus' : 'Dunkel-Modus'}>
               {darkMode ? <Sun size={18} /> : <Moon size={18} />}
             </button>
+            {/* Nutzer & Abmelden */}
+            {user && (
+              <div className="flex items-center gap-2 ml-1">
+                <img src={user.photoURL} alt={user.displayName}
+                  className="w-8 h-8 rounded-full border-2 border-white/40 flex-shrink-0" />
+                <button onClick={onSignOut}
+                  className="text-xs text-white/70 hover:text-white px-2 py-1 rounded-lg hover:bg-white/20 transition hidden sm:block">
+                  Abmelden
+                </button>
+              </div>
+            )}
           </nav>
         </div>
       </header>
