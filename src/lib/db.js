@@ -1,107 +1,205 @@
-import { openDB } from 'idb';
+import {
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
+  query, where, setDoc, serverTimestamp, orderBy
+} from 'firebase/firestore';
+import { db, auth } from './firebase';
 
-const DB_NAME = 'lehrprobe-db';
-const DB_VERSION = 2;
+const uid = () => auth.currentUser?.uid;
 
-async function getDB() {
-  return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion) {
-      if (oldVersion < 1) {
-        db.createObjectStore('lehrproben', { keyPath: 'id' });
-        db.createObjectStore('auswertungen', { keyPath: 'id' });
-        db.createObjectStore('einstellungen', { keyPath: 'key' });
-      }
-      if (oldVersion < 2) {
-        db.createObjectStore('gespraechsnotizen', { keyPath: 'lehrprobeId' });
-      }
-    },
-  });
-}
+// =================== LEHRPROBEN ===================
 
 export async function getLehrproben() {
-  const db = await getDB();
-  const all = await db.getAll('lehrproben');
-  return all.sort((a, b) => new Date(b.datum) - new Date(a.datum));
-}
-
-export async function getLehrprobe(id) {
-  const db = await getDB();
-  return db.get('lehrproben', id);
-}
-
-export async function addLehrprobe(data) {
-  const db = await getDB();
-  await db.put('lehrproben', data);
-  return data.id;
-}
-
-export async function updateLehrprobe(data) {
-  const db = await getDB();
-  await db.put('lehrproben', data);
-}
-
-export async function deleteLehrprobe(id) {
-  const db = await getDB();
-  await db.delete('lehrproben', id);
-  const all = await db.getAll('auswertungen');
-  for (const a of all.filter(a => a.lehrprobeId === id)) {
-    await db.delete('auswertungen', a.id);
+  if (!uid()) return [];
+  try {
+    const q = query(
+      collection(db, 'users', uid(), 'lehrproben'),
+      orderBy('datum', 'desc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch {
+    return [];
   }
 }
 
+export async function getLehrprobe(id) {
+  if (!uid()) return null;
+  const snap = await getDoc(doc(db, 'users', uid(), 'lehrproben', id));
+  return snap.exists() ? { id: snap.id, ...snap.data() } : null;
+}
+
+export async function addLehrprobe(data) {
+  if (!uid()) throw new Error('Nicht angemeldet');
+  const { id, ...rest } = data;
+  await setDoc(doc(db, 'users', uid(), 'lehrproben', id), {
+    ...rest,
+    createdAt: serverTimestamp(),
+  });
+  return id;
+}
+
+export async function updateLehrprobe(data) {
+  if (!uid()) throw new Error('Nicht angemeldet');
+  const { id, ...rest } = data;
+  await setDoc(doc(db, 'users', uid(), 'lehrproben', id), {
+    ...rest,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+export async function deleteLehrprobe(id) {
+  if (!uid()) throw new Error('Nicht angemeldet');
+  await deleteDoc(doc(db, 'users', uid(), 'lehrproben', id));
+  const q = query(
+    collection(db, 'users', uid(), 'auswertungen'),
+    where('lehrprobeId', '==', id)
+  );
+  const snap = await getDocs(q);
+  for (const d of snap.docs) await deleteDoc(d.ref);
+}
+
+// =================== AUSWERTUNGEN ===================
+
 export async function getAuswertungenForLehrprobe(lehrprobeId) {
-  const db = await getDB();
-  const all = await db.getAll('auswertungen');
-  return all.filter(a => a.lehrprobeId === lehrprobeId);
+  if (!uid()) return [];
+  const q = query(
+    collection(db, 'users', uid(), 'auswertungen'),
+    where('lehrprobeId', '==', lehrprobeId)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 export async function addAuswertung(data) {
-  const db = await getDB();
-  await db.put('auswertungen', data);
-  return data.id;
+  if (!uid()) throw new Error('Nicht angemeldet');
+  const { id, ...rest } = data;
+  await setDoc(doc(db, 'users', uid(), 'auswertungen', id), {
+    ...rest,
+    updatedAt: serverTimestamp(),
+  });
+  return id;
 }
 
 export async function updateAuswertung(data) {
-  const db = await getDB();
-  await db.put('auswertungen', data);
+  if (!uid()) throw new Error('Nicht angemeldet');
+  const { id, ...rest } = data;
+  if (!id) return;
+  await setDoc(doc(db, 'users', uid(), 'auswertungen', id), {
+    ...rest,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
 }
 
+// =================== EINSTELLUNGEN ===================
+
 export async function getEinstellung(key) {
-  const db = await getDB();
-  const entry = await db.get('einstellungen', key);
-  return entry?.value ?? null;
+  if (!uid()) return localStorage.getItem(`einstellung_${key}`);
+  try {
+    const snap = await getDoc(doc(db, 'users', uid(), 'einstellungen', key));
+    return snap.exists() ? snap.data().value : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function setEinstellung(key, value) {
-  const db = await getDB();
-  await db.put('einstellungen', { key, value });
+  if (!uid()) {
+    localStorage.setItem(`einstellung_${key}`, value);
+    return;
+  }
+  await setDoc(doc(db, 'users', uid(), 'einstellungen', key), { value });
 }
 
+// =================== GESPRÄCHSNOTIZEN ===================
+
 export async function getGespraechsnotiz(lehrprobeId) {
-  const db = await getDB();
-  const entry = await db.get('gespraechsnotizen', lehrprobeId);
-  return entry?.text ?? null;
+  if (!uid()) return null;
+  try {
+    const snap = await getDoc(doc(db, 'users', uid(), 'gespraechsnotizen', lehrprobeId));
+    return snap.exists() ? snap.data().text : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function setGespraechsnotiz(lehrprobeId, text) {
-  const db = await getDB();
-  await db.put('gespraechsnotizen', { lehrprobeId, text });
-}
-
-export async function exportiereAllesDaten() {
-  const db = await getDB();
-  const lehrproben = await db.getAll('lehrproben');
-  const auswertungen = await db.getAll('auswertungen');
-  return { lehrproben, auswertungen, exportDatum: new Date().toISOString() };
-}
-
-export async function importiereDaten(data) {
-  const db = await getDB();
-  const { lehrproben = [], auswertungen = [] } = data;
-  for (const lp of lehrproben) await db.put('lehrproben', lp);
-  for (const a of auswertungen) await db.put('auswertungen', a);
+  if (!uid()) return;
+  await setDoc(doc(db, 'users', uid(), 'gespraechsnotizen', lehrprobeId), { text });
 }
 
 // Aliase für Abwärtskompatibilität
 export const getGespraechsnotizForLehrprobe = getGespraechsnotiz;
 export const saveGespraechsnotiz = setGespraechsnotiz;
+
+// =================== BACKUP ===================
+
+export async function exportiereAllesDaten() {
+  if (!uid()) return null;
+  const lehrproben = await getLehrproben();
+  const auswertungen = [];
+  for (const lp of lehrproben) {
+    const a = await getAuswertungenForLehrprobe(lp.id);
+    auswertungen.push(...a);
+  }
+  return { lehrproben, auswertungen, exportDatum: new Date().toISOString() };
+}
+
+export async function importiereDaten(data) {
+  if (!uid()) throw new Error('Nicht angemeldet');
+  const { lehrproben = [], auswertungen = [] } = data;
+  for (const lp of lehrproben) {
+    const { id, ...rest } = lp;
+    await setDoc(doc(db, 'users', uid(), 'lehrproben', id), rest);
+  }
+  for (const a of auswertungen) {
+    const { id, ...rest } = a;
+    await setDoc(doc(db, 'users', uid(), 'auswertungen', id), rest);
+  }
+}
+
+// =================== TEILEN ===================
+
+export async function erstelleEinladungslink(lehrprobeId) {
+  if (!uid()) throw new Error('Nicht angemeldet');
+  const token = crypto.randomUUID();
+  const ablauf = new Date();
+  ablauf.setDate(ablauf.getDate() + 7);
+  await setDoc(doc(db, 'einladungen', token), {
+    ownerId: uid(),
+    lehrprobeId,
+    ablauf: ablauf.toISOString(),
+    createdAt: serverTimestamp(),
+  });
+  return `${window.location.origin}/anwaerter_manager-/invite/${token}`;
+}
+
+export async function getEinladung(token) {
+  const snap = await getDoc(doc(db, 'einladungen', token));
+  if (!snap.exists()) return null;
+  const data = snap.data();
+  if (new Date(data.ablauf) < new Date()) return null;
+  return data;
+}
+
+export async function nimmEinladungAn(token) {
+  if (!uid()) throw new Error('Nicht angemeldet');
+  const einladung = await getEinladung(token);
+  if (!einladung) throw new Error('Einladung ungültig oder abgelaufen');
+  await setDoc(doc(db, 'geteilte_zugaenge', `${uid()}_${einladung.lehrprobeId}`), {
+    userId: uid(),
+    ownerId: einladung.ownerId,
+    lehrprobeId: einladung.lehrprobeId,
+    access: 'write',
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function getGeteilteAnwaerter() {
+  if (!uid()) return [];
+  const q = query(
+    collection(db, 'geteilte_zugaenge'),
+    where('userId', '==', uid())
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => d.data());
+}
