@@ -36,7 +36,7 @@ function App() {
   if (!user) return <Login />;
 
   return (
-    <BrowserRouter basename="/anwaerter_manager-">
+    <BrowserRouter basename="/">
       <Routes>
         <Route path="/invite/:token" element={<InviteHandler />} />
         <Route path="/" element={<Layout user={user} onSignOut={() => signOut(auth)} />}>
