@@ -101,7 +101,7 @@ function Dashboard() {
   if (loading) return <div className="text-center p-12 text-slate-500">Lade Dashboard...</div>;
   if (daten?.leer) return (
     <div className="card p-16 text-center">
-      <p className="text-slate-500">Noch keine Daten vorhanden. Lege zuerst eine Lehrprobe an.</p>
+      <p className="text-slate-500">Noch keine Daten vorhanden. Lege zuerst eine Auswertung an.</p>
       <Link to="/" className="btn btn-primary mt-4 mx-auto">Zur Übersicht</Link>
     </div>
   );
@@ -114,7 +114,7 @@ function Dashboard() {
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold text-slate-900">Dashboard</h2>
-        <p className="text-slate-500 mt-1">Gesamtübersicht aller Lehrproben</p>
+        <p className="text-slate-500 mt-1">Gesamtübersicht aller Auswertungen</p>
       </div>
 
       {/* Stat-Karten */}
@@ -124,7 +124,7 @@ function Dashboard() {
             <ClipboardList size={20} className="text-indigo-600" />
           </div>
           <p className="text-2xl font-bold text-slate-900">{daten.lehrproben.length}</p>
-          <p className="text-sm text-slate-500 mt-0.5">Lehrproben</p>
+          <p className="text-sm text-slate-500 mt-0.5">Auswertungen</p>
         </div>
         <div className="card p-5">
           <div className="bg-blue-100 rounded-xl p-2.5 w-fit mb-3">
@@ -151,7 +151,7 @@ function Dashboard() {
 
       {/* Kompetenz-Übersicht */}
       <div className="card p-5">
-        <h3 className="font-bold text-slate-800 mb-4">Ø Kompetenzwerte (alle Lehrproben)</h3>
+        <h3 className="font-bold text-slate-800 mb-4">Ø Kompetenzwerte (alle Auswertungen)</h3>
         <div className="space-y-3">
           {daten.kompetenzDurchschnitte.map(k => {
             const farben = getFarbe(k.wert);
