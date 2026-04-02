@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { X, Keyboard, Pen } from 'lucide-react';
 import Zeichenflaeche from './Zeichenflaeche';
 
-// Notiz-Overlay bei Gelb/Rot
 function NotizOverlay({ aufgabeId, farbe, notiz, onSpeichern, onSchliessen }) {
   const [eingabeArt, setEingabeArt] = useState(notiz?.art || 'tastatur');
   const [tastaturText, setTastaturText] = useState(notiz?.tastaturText || '');
@@ -72,11 +71,10 @@ function NotizOverlay({ aufgabeId, farbe, notiz, onSpeichern, onSchliessen }) {
   );
 }
 
-// Einzelne Aufgabe mit Ampel
 function BewerberAmpelItem({ aufgabe, ampelWert, notiz, onAmpelChange, onNotizChange }) {
   const [notizOverlay, setNotizOverlay] = useState(null);
 
-  const handleAmpelKlick = (farbe) => {
+  const handleKlick = (farbe) => {
     if (ampelWert === farbe) { onAmpelChange(null); return; }
     if (farbe === 'gruen') {
       onAmpelChange('gruen');
@@ -88,30 +86,36 @@ function BewerberAmpelItem({ aufgabe, ampelWert, notiz, onAmpelChange, onNotizCh
 
   const hatNotiz = notiz && (notiz.tastaturText?.trim() || notiz.stiftData);
 
+  const OPTIONEN = [
+    { farbe: 'gruen', label: 'OK', bg: 'bg-emerald-500', hover: 'hover:bg-emerald-600', activeBg: 'bg-emerald-500', ring: 'ring-emerald-300', textColor: 'text-white' },
+    { farbe: 'gelb', label: 'Mängel', bg: 'bg-amber-400', hover: 'hover:bg-amber-500', activeBg: 'bg-amber-400', ring: 'ring-amber-300', textColor: 'text-white' },
+    { farbe: 'rot', label: 'Nicht erfüllt', bg: 'bg-red-500', hover: 'hover:bg-red-600', activeBg: 'bg-red-500', ring: 'ring-red-300', textColor: 'text-white' },
+  ];
+
   return (
     <>
       <div className="flex items-start gap-3 py-3 border-b border-slate-100 last:border-0">
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pt-1">
           <p className="text-sm text-slate-700">{aufgabe.text}</p>
           {ampelWert && ampelWert !== 'gruen' && hatNotiz && (
             <div className={`mt-1.5 px-2 py-1 rounded-lg text-xs border ${ampelWert === 'gelb' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
               {notiz.tastaturText && <p className="truncate">{notiz.tastaturText}</p>}
               {notiz.stiftData && <p className="italic">+ Stiftnotiz</p>}
-              <button onClick={() => setNotizOverlay(ampelWert)} className="underline opacity-70 mt-0.5">Bearbeiten</button>
+              <button onClick={() => setNotizOverlay(ampelWert)} className="underline opacity-70 mt-0.5 text-xs">Bearbeiten</button>
             </div>
           )}
         </div>
-        {/* Ampel */}
-        <div className="flex flex-col gap-1 bg-slate-800 rounded-xl p-1.5 flex-shrink-0">
-          {[
-            { farbe: 'rot', bg: 'bg-red-500', border: 'border-red-600', ring: 'ring-red-300' },
-            { farbe: 'gelb', bg: 'bg-amber-400', border: 'border-amber-500', ring: 'ring-amber-300' },
-            { farbe: 'gruen', bg: 'bg-emerald-500', border: 'border-emerald-600', ring: 'ring-emerald-300' },
-          ].map(({ farbe, bg, border, ring }) => (
-            <button key={farbe} onClick={() => handleAmpelKlick(farbe)}
-              className={`w-6 h-6 rounded-full border-2 transition-all ${bg} ${border} ${ampelWert === farbe ? `ring-4 ${ring} scale-110` : 'opacity-40 hover:opacity-80'}`}
-              title={farbe === 'gruen' ? 'Ohne Beanstandung' : farbe === 'gelb' ? 'Mängel vorhanden' : 'Nicht erfüllt'}
-            />
+        {/* Schlichte Bewertungs-Buttons */}
+        <div className="flex gap-1.5 flex-shrink-0">
+          {OPTIONEN.map(({ farbe, label, bg, hover, ring, textColor }) => (
+            <button key={farbe} onClick={() => handleKlick(farbe)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${textColor} ${
+                ampelWert === farbe
+                  ? `${bg} ring-2 ${ring} scale-105 shadow-sm`
+                  : `${bg} opacity-30 ${hover} hover:opacity-60`
+              }`}>
+              {label}
+            </button>
           ))}
         </div>
       </div>
