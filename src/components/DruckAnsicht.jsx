@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getAuswertungenForLehrprobe } from '../lib/db';
-import { berechneKategorieDurchschnitte, berechneGewichteteNote } from '../lib/berechnungen';
+import { berechneKategorieDurchschnitte } from '../lib/berechnungen';
 import { KRITERIEN_THEORIE, KRITERIEN_FAHRSTUNDE } from '../data/kriterien';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -155,7 +155,6 @@ const CSS = `
 export function erstelleDruckHTML(probe, auswertung, kiText) {
   const istFahrstunde = probe.typ === 'fahrstunde';
   const kriterien = istFahrstunde ? KRITERIEN_FAHRSTUNDE : KRITERIEN_THEORIE;
-  const noteErgebnis = auswertung ? berechneGewichteteNote(auswertung) : null;
 
   const kiSeite = kiText ? `
     <div class="ki-seite">
@@ -173,9 +172,8 @@ export function erstelleDruckHTML(probe, auswertung, kiText) {
 </head>
 <body>
   <button class="drucken-btn" onclick="window.print()">🖨️ Drucken / PDF</button>
-  ${kopfzeileHtml(probe, auswertung, noteErgebnis)}
+  ${kopfzeileHtml(probe, auswertung, null)}
   ${bewertungstabelleHtml(auswertung, kriterien)}
-  ${notenberechnungHtml(auswertung, kriterien, noteErgebnis)}
   ${gesamteindruckHtml(auswertung)}
   ${kiSeite}
 </body>
