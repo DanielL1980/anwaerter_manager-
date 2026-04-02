@@ -9,6 +9,7 @@ import FahrtNotizblock from '../components/FahrtNotizblock';
 import TheorieNotizblock from '../components/TheorieNotizblock';
 import Stoppuhr from '../components/Stoppuhr';
 import Teilen from '../components/Teilen';
+import AnwaerterTeilen from '../components/AnwaerterTeilen';
 import { ChevronLeft, Calendar, Printer, Trash2, User, GraduationCap, Car } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
@@ -65,6 +66,7 @@ function LehrprobeDetail() {
       <div className="flex justify-between items-center mb-6 no-print">
         <Link to="/" className="btn btn-secondary"><ChevronLeft size={18} /><span>Übersicht</span></Link>
         <div className="flex gap-2">
+          <AnwaerterTeilen lehrprobeId={probe.id} anwaerterName={probe.prüfling} />
           <Teilen probe={probe} />
           <button onClick={() => window.print()} className="btn btn-secondary">
             <Printer size={18} /><span className="hidden sm:inline">Drucken / PDF</span>
