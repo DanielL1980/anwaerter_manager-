@@ -52,12 +52,12 @@ function BewerberHome() {
         <div>
           <h2 className="text-3xl font-bold text-slate-900">Bewerber</h2>
           <p className="text-slate-500 mt-1">
-            {pruefungen.length === 0 ? 'Noch keine Einträge' : `${pruefungen.length} Prüfung${pruefungen.length !== 1 ? 'en' : ''} gespeichert`}
+            {pruefungen.length === 0 ? 'Noch keine Einträge' : `${pruefungen.length} Bewertung${pruefungen.length !== 1 ? 'en' : ''} gespeichert`}
           </p>
         </div>
         <button onClick={() => setIsModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-semibold hover:from-teal-700 hover:to-emerald-700 transition active:scale-95 shadow-sm">
-          <Plus size={20} /><span>Neue Prüfung</span>
+          <Plus size={20} /><span>Neue Bewertung</span>
         </button>
       </div>
 
@@ -68,14 +68,14 @@ function BewerberHome() {
               <div className="bg-teal-100 rounded-xl p-3"><ClipboardList size={22} className="text-teal-600" /></div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">{pruefungen.length}</p>
-                <p className="text-sm text-slate-500">Prüfungen gesamt</p>
+                <p className="text-sm text-slate-500">Bewertungen gesamt</p>
               </div>
             </div>
             <div className="card p-5 flex items-center gap-4">
               <div className="bg-emerald-100 rounded-xl p-3"><Calendar size={22} className="text-emerald-600" /></div>
               <div>
                 <p className="text-2xl font-bold text-slate-900">{format(new Date(pruefungen[0].datum), 'dd. MMM', { locale: de })}</p>
-                <p className="text-sm text-slate-500">Letzte Prüfung</p>
+                <p className="text-sm text-slate-500">Letzte Bewertung</p>
               </div>
             </div>
           </div>
@@ -99,11 +99,11 @@ function BewerberHome() {
           <div className="bg-teal-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-5">
             <ClipboardList size={36} className="text-teal-400" />
           </div>
-          <h3 className="text-xl font-bold text-slate-700 mb-2">Noch keine Prüfungen</h3>
-          <p className="text-slate-500 mb-6">Legen Sie die erste Bewerber-Prüfung an.</p>
+          <h3 className="text-xl font-bold text-slate-700 mb-2">Noch keine Bewertungen</h3>
+          <p className="text-slate-500 mb-6">Legen Sie die erste fahrpraktische Bewertung an.</p>
           <button onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-semibold mx-auto">
-            <Plus size={20} /><span>Erste Prüfung anlegen</span>
+            <Plus size={20} /><span>Erste Bewertung anlegen</span>
           </button>
         </div>
       ) : gefiltert.length === 0 ? (
