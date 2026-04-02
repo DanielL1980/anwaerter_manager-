@@ -9,7 +9,7 @@ import FahrtNotizblock from '../components/FahrtNotizblock';
 import TheorieNotizblock from '../components/TheorieNotizblock';
 import Stoppuhr from '../components/Stoppuhr';
 import AnwaerterTeilen from '../components/AnwaerterTeilen';
-import { ChevronLeft, Calendar, Printer, Trash2, User, GraduationCap, Car } from 'lucide-react';
+import { ChevronLeft, Calendar, Trash2, User, GraduationCap, Car } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import '../print.css';
@@ -66,9 +66,7 @@ function LehrprobeDetail() {
         <Link to="/" className="btn btn-secondary"><ChevronLeft size={18} /><span>Übersicht</span></Link>
         <div className="flex gap-2">
           <AnwaerterTeilen lehrprobeId={probe.id} anwaerterName={probe.prüfling} probe={probe} />
-          <button onClick={() => window.print()} className="btn btn-secondary">
-            <Printer size={18} /><span className="hidden sm:inline">Drucken / PDF</span>
-          </button>
+
           <button onClick={() => setIsDeleteModalOpen(true)}
             className="btn bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 focus:ring-red-400 shadow-sm">
             <Trash2 size={18} />
