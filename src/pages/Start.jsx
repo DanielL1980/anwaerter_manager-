@@ -35,7 +35,7 @@ function Start() {
           </div>
           <div>
             <h3 className="text-xl font-bold text-slate-900 mb-1">Bewerber</h3>
-            <p className="text-sm text-slate-500">Fahrpraktische Prüfungen erfassen</p>
+            <p className="text-sm text-slate-500">Fahrpraktische Bewertungen erfassen</p>
           </div>
           <div className="flex gap-1.5 flex-wrap justify-center">
             <span className="text-xs bg-teal-100 text-teal-700 px-2 py-0.5 rounded-lg font-medium">B / BE</span>
