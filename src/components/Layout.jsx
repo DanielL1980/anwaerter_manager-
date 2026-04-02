@@ -25,7 +25,7 @@ function Layout({ user, onSignOut }) {
               <GraduationCap size={24} />
             </div>
             <div>
-              <h1 className="text-lg font-bold leading-tight">Lehrprobe Auswerter</h1>
+              <h1 className="text-lg font-bold leading-tight">MKL Auswerteapp</h1>
               <p className="text-indigo-200 text-xs">Fahrlehrerausbildung</p>
             </div>
           </NavLink>
