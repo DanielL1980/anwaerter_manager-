@@ -59,7 +59,7 @@ function BewerberDetail() {
     const istBBE = pruefung.klasse === 'B_BE';
     const AMPEL_TEXT = { gruen: 'Ohne Beanstandung', gelb: 'Mit Mängeln', rot: 'Nicht erfüllt' };
 
-    let text = `BEWERBER-PRÜFUNG ${istBBE ? 'B/BE' : 'C/CE'}\n`;
+    let text = `FAHRPRAKTISCHE BEWERTUNG ${istBBE ? 'B/BE' : 'C/CE'}\n`;
     text += `${'='.repeat(50)}\n`;
     text += `Bewerber: ${pruefung.dienstgrad ? pruefung.dienstgrad + ' ' : ''}${pruefung.bewerber}\n`;
     text += `Datum: ${format(new Date(pruefung.datum), 'dd.MM.yyyy', { locale: de })}\n`;
@@ -191,7 +191,7 @@ function BewerberDetail() {
               <h2 className="text-xl font-bold truncate">
                 {pruefung.dienstgrad ? `${pruefung.dienstgrad} ${pruefung.bewerber}` : pruefung.bewerber}
               </h2>
-              <p className="text-teal-200 text-sm">Fahrpraktische Prüfung {istBBE ? 'B/BE' : 'C/CE'}</p>
+              <p className="text-teal-200 text-sm">Fahrpraktische Bewertung {istBBE ? 'B/BE' : 'C/CE'}</p>
             </div>
           </div>
         </div>
