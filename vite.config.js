@@ -3,14 +3,13 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: '/anwaerter_manager-/',
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'Anwärterauswertung',
-        short_name: 'Auswertung',
+        name: 'MKL Auswerteapp',
+        short_name: 'MKL App',
         theme_color: '#4f46e5',
         background_color: '#f8fafc',
         display: 'standalone',
