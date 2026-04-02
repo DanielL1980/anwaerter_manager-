@@ -14,11 +14,11 @@ function ConfirmDeleteModal({ isOpen, onClose, onConfirm, itemName }) {
           </div>
           <div className="mt-0 text-left">
             <h3 className="text-lg leading-6 font-bold text-gray-900">
-              Lehrprobe löschen
+              Auswertung löschen
             </h3>
             <div className="mt-2">
               <p className="text-sm text-gray-600">
-                Möchten Sie die Lehrprobe für <strong className="text-gray-800">"{itemName}"</strong> wirklich endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+                Möchten Sie die Auswertung für <strong className="text-gray-800">"{itemName}"</strong> wirklich endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.
               </p>
             </div>
           </div>
