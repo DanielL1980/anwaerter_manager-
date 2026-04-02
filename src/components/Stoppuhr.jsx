@@ -51,7 +51,7 @@ function DifferenzAnzeige({ geplantVon, geplantBis, tatsaechlichVon, tatsaechlic
   );
 }
 
-function Stoppuhr({ lehrprobeId, probe }) {
+function Stoppuhr({ lehrprobeId, probe, onZeitGespeichert }) {
   const [offen, setOffen] = useState(false);
   const [laeuft, setLaeuft] = useState(false);
   const [startzeit, setStartzeit] = useState(null);
