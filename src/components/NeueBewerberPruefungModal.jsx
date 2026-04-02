@@ -50,7 +50,7 @@ function NeueBewerberPruefungModal({ isOpen, onClose, onAdded }) {
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white w-full sm:max-w-md sm:rounded-2xl shadow-2xl overflow-hidden">
         <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-6 py-5 text-white flex items-center justify-between">
-          <h2 className="text-xl font-bold">Neue Bewerber-Prüfung</h2>
+          <h2 className="text-xl font-bold">Neue Fahrpraktische Bewertung</h2>
           <button onClick={onClose} className="text-white/70 hover:text-white transition"><X size={22} /></button>
         </div>
         <div className="p-6 space-y-4">
@@ -104,7 +104,7 @@ function NeueBewerberPruefungModal({ isOpen, onClose, onAdded }) {
 
           <button onClick={handleSubmit} disabled={laedt}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 text-white font-bold hover:from-teal-700 hover:to-emerald-700 transition active:scale-95">
-            {laedt ? 'Wird angelegt...' : 'Prüfung anlegen'}
+            {laedt ? 'Wird angelegt...' : 'Bewertung anlegen'}
           </button>
         </div>
       </div>
