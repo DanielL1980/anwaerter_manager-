@@ -19,26 +19,37 @@ function InviteHandler() {
         if (!einladung) { setStatus('ungueltig'); return; }
         await nimmEinladungAn(token);
         setStatus('erfolg');
-        setTimeout(() => navigate('/'), 2000);
+        setTimeout(() => navigate('/'), 2500);
       } catch (e) {
+        console.error(e);
         setStatus('fehler');
       }
     };
     verarbeite();
   }, [token]);
 
-  const meldungen = {
-    laden: 'Einladung wird geprüft...',
-    login: 'Bitte zuerst anmelden.',
-    ungueltig: 'Einladungslink ungültig oder abgelaufen.',
-    erfolg: '✓ Zugriff gewährt! Du wirst weitergeleitet...',
-    fehler: 'Ein Fehler ist aufgetreten.',
+  const config = {
+    laden:    { emoji: '⏳', text: 'Einladung wird geprüft...', farbe: 'text-slate-600' },
+    login:    { emoji: '🔐', text: 'Bitte zuerst anmelden.', farbe: 'text-amber-600' },
+    ungueltig:{ emoji: '❌', text: 'Einladungslink ungültig oder abgelaufen.', farbe: 'text-red-600' },
+    erfolg:   { emoji: '✅', text: 'Zugriff gewährt! Du wirst weitergeleitet...', farbe: 'text-emerald-600' },
+    fehler:   { emoji: '⚠️', text: 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.', farbe: 'text-red-600' },
   };
 
+  const c = config[status];
+
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="card p-8 text-center max-w-sm">
-        <p className="text-lg font-medium text-slate-700">{meldungen[status]}</p>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-sm text-center">
+        <div className="text-5xl mb-4">{c.emoji}</div>
+        <h2 className="text-xl font-bold text-slate-800 mb-2">Einladung</h2>
+        <p className={`text-base font-medium ${c.farbe}`}>{c.text}</p>
+        {status === 'login' && (
+          <p className="text-sm text-slate-500 mt-3">Melde dich mit deinem Google-Konto an und öffne den Link erneut.</p>
+        )}
+        {status === 'erfolg' && (
+          <p className="text-sm text-slate-400 mt-3">Du hast jetzt Zugriff auf den geteilten Anwärter.</p>
+        )}
       </div>
     </div>
   );
