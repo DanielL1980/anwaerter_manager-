@@ -89,7 +89,7 @@ function Einstellungen() {
       const a = document.createElement('a');
       const datum = new Date().toISOString().slice(0, 10);
       a.href = url;
-      a.download = `lehrprobe-backup-${datum}.json`;
+      a.download = `mkl-backup-${datum}.json`;
       a.click();
       URL.revokeObjectURL(url);
       setBackupStatus('Backup erfolgreich heruntergeladen!');
