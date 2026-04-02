@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
 import Layout from './components/Layout';
+import Start from './pages/Start';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import LehrprobeDetail from './pages/LehrprobeDetail';
@@ -10,6 +11,8 @@ import AnwaerterProfil from './pages/AnwaerterProfil';
 import Einstellungen from './pages/Einstellungen';
 import Login from './components/Login';
 import InviteHandler from './components/InviteHandler';
+import BewerberHome from './pages/BewerberHome';
+import BewerberDetail from './pages/BewerberDetail';
 
 function App() {
   const [user, setUser] = useState(undefined);
@@ -37,11 +40,14 @@ function App() {
       <Routes>
         <Route path="/invite/:token" element={<InviteHandler />} />
         <Route path="/" element={<Layout user={user} onSignOut={() => signOut(auth)} />}>
-          <Route index element={<Home />} />
+          <Route index element={<Start />} />
+          <Route path="/anwaerter" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/lehrprobe/:id" element={<LehrprobeDetail />} />
           <Route path="/anwaerter/:name" element={<AnwaerterProfil />} />
           <Route path="/einstellungen" element={<Einstellungen />} />
+          <Route path="/bewerber" element={<BewerberHome />} />
+          <Route path="/bewerber/:id" element={<BewerberDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>
