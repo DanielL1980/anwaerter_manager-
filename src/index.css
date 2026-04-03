@@ -15,7 +15,7 @@
     @apply bg-slate-900 text-slate-100;
   }
   html.dark .card {
-    @apply bg-slate-800 border-slate-700;
+    @apply bg-slate-800 border-slate-600;
   }
   html.dark .input-field {
     @apply bg-slate-700 border-slate-600 text-slate-100 placeholder-slate-400;
@@ -25,6 +25,43 @@
   }
   html.dark .btn-secondary {
     @apply bg-slate-700 text-slate-200 border-slate-600 hover:bg-slate-600;
+  }
+  /* Dark Mode Text Fixes */
+  html.dark p {
+    @apply text-slate-200;
+  }
+  html.dark h2, html.dark h3 {
+    @apply text-slate-100;
+  }
+  html.dark .text-slate-900 {
+    @apply !text-slate-100;
+  }
+  html.dark .text-slate-800 {
+    @apply !text-slate-200;
+  }
+  html.dark .text-slate-700 {
+    @apply !text-slate-300;
+  }
+  html.dark .text-slate-600 {
+    @apply !text-slate-400;
+  }
+  html.dark .text-slate-500 {
+    @apply !text-slate-400;
+  }
+  html.dark .bg-white {
+    @apply !bg-slate-800;
+  }
+  html.dark .bg-slate-50 {
+    @apply !bg-slate-800;
+  }
+  html.dark .border-slate-100 {
+    @apply !border-slate-600;
+  }
+  html.dark .border-slate-200 {
+    @apply !border-slate-600;
+  }
+  html.dark select {
+    @apply bg-slate-700 text-slate-100 border-slate-600;
   }
 }
 
