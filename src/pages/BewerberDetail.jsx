@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { getBewerberpruefung, updateBewerberpruefung, deleteBewerberpruefung } from '../lib/bewerberDb';
 import BewerberAmpelItem from '../components/BewerberAmpel';
@@ -103,12 +103,6 @@ function BewerberDetail() {
     getBewerberpruefung(id).then(p => { setPruefung(p); setLoading(false); });
   }, [id]);
 
-  const update = async (changes) => {
-    const neu = { ...pruefung, ...changes };
-    setPruefung(neu);
-    await updateBewerberpruefung(neu);
-  };
-
   const handleAmpelChange = async (aufgabeId, farbe) => {
     const neuesAmpel = { ...(pruefung.ampel || {}), [aufgabeId]: farbe };
     if (farbe === null) delete neuesAmpel[aufgabeId];
@@ -117,9 +111,10 @@ function BewerberDetail() {
     await updateBewerberpruefung(neu);
   };
 
-  const handleAmpelNotizChange = async (aufgabeId, notizDaten) => {
+  const handleAmpelNotizChange = async (aufgabeId, notizDaten, farbe) => {
     const neueNotizen = { ...(pruefung.ampelNotizen || {}), [aufgabeId]: notizDaten };
-    const neu = { ...pruefung, ampelNotizen: neueNotizen };
+    const neuesAmpel = { ...(pruefung.ampel || {}), [aufgabeId]: farbe };
+    const neu = { ...pruefung, ampelNotizen: neueNotizen, ampel: neuesAmpel };
     setPruefung(neu);
     await updateBewerberpruefung(neu);
   };
@@ -221,7 +216,7 @@ function BewerberDetail() {
                 ampelWert={pruefung.ampel?.[aufgabe.id] || null}
                 notiz={pruefung.ampelNotizen?.[aufgabe.id] || null}
                 onAmpelChange={(farbe) => handleAmpelChange(aufgabe.id, farbe)}
-                onNotizChange={(aufgabeId, notizDaten) => handleAmpelNotizChange(aufgabeId, notizDaten)}
+                onNotizChange={(aufgabeId, notizDaten, farbe) => handleAmpelNotizChange(aufgabeId, notizDaten, farbe)}
               />
             ))}
           </div>
@@ -242,7 +237,11 @@ function BewerberDetail() {
       <BewerberKartenpins pruefungId={pruefung.id} />
 
       <Stoppuhr lehrprobeId={pruefung.id} probe={stoppuhrProbe}
-        onZeitGespeichert={(von, bis) => update({ zeitTatsaechlichVon: von, zeitTatsaechlichBis: bis })} />
+        onZeitGespeichert={(von, bis) => {
+          const neu = { ...pruefung, zeitTatsaechlichVon: von, zeitTatsaechlichBis: bis };
+          setPruefung(neu);
+          updateBewerberpruefung(neu);
+        }} />
     </div>
   );
 }
