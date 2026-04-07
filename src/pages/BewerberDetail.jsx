@@ -111,7 +111,7 @@ function BewerberDetail() {
   const update = (changes) => {
     const neu = { ...pruefung, ...changes };
     setPruefung(neu);
-    debouncedSave(neu);
+    updateBewerberpruefung(neu);
   };
 
   const handleAmpelChange = (aufgabeId, farbe) => {
