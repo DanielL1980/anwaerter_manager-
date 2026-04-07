@@ -9,7 +9,6 @@ import AnwaerterTeilen from '../components/AnwaerterTeilen';
 import { ChevronLeft, Trash2, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { debounce } from '../lib/utils';
 import {
   GRUNDFAHRAUFGABEN_B, GRUNDFAHRAUFGABEN_BE,
   GRUNDFAHRAUFGABEN_C, GRUNDFAHRAUFGABEN_CE,
@@ -100,32 +99,36 @@ function BewerberDetail() {
   const [pruefung, setPruefung] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const debouncedSave = useCallback(
-    debounce(async (data) => { await updateBewerberpruefung(data); }, 500), []
-  );
-
   useEffect(() => {
     getBewerberpruefung(id).then(p => { setPruefung(p); setLoading(false); });
   }, [id]);
 
-  const update = (changes) => {
+  const update = async (changes) => {
     const neu = { ...pruefung, ...changes };
     setPruefung(neu);
-    updateBewerberpruefung(neu);
+    await updateBewerberpruefung(neu);
   };
 
-  const handleAmpelChange = (aufgabeId, farbe) => {
+  const handleAmpelChange = async (aufgabeId, farbe) => {
     const neuesAmpel = { ...(pruefung.ampel || {}), [aufgabeId]: farbe };
     if (farbe === null) delete neuesAmpel[aufgabeId];
-    update({ ampel: neuesAmpel });
+    const neu = { ...pruefung, ampel: neuesAmpel };
+    setPruefung(neu);
+    await updateBewerberpruefung(neu);
   };
 
-  const handleAmpelNotizChange = (aufgabeId, notizDaten) => {
+  const handleAmpelNotizChange = async (aufgabeId, notizDaten) => {
     const neueNotizen = { ...(pruefung.ampelNotizen || {}), [aufgabeId]: notizDaten };
-    update({ ampelNotizen: neueNotizen });
+    const neu = { ...pruefung, ampelNotizen: neueNotizen };
+    setPruefung(neu);
+    await updateBewerberpruefung(neu);
   };
 
-  const handleNotizChange = (feld, daten) => update({ [feld]: daten });
+  const handleNotizChange = async (feld, daten) => {
+    const neu = { ...pruefung, [feld]: daten };
+    setPruefung(neu);
+    await updateBewerberpruefung(neu);
+  };
 
   const handleLoeschen = async () => {
     if (!window.confirm('Bewertung wirklich löschen?')) return;
@@ -161,7 +164,11 @@ function BewerberDetail() {
     zeitTatsaechlichBis: pruefung.zeitTatsaechlichBis || '',
   };
 
-  const teilenProbe = { ...pruefung, prüfling: `${pruefung.dienstgrad ? pruefung.dienstgrad + ' ' : ''}${pruefung.bewerber}`, thema: `${istBBE ? 'B/BE' : 'C/CE'} – ${format(new Date(pruefung.datum), 'dd.MM.yyyy')}` };
+  const teilenProbe = {
+    ...pruefung,
+    prüfling: `${pruefung.dienstgrad ? pruefung.dienstgrad + ' ' : ''}${pruefung.bewerber}`,
+    thema: `${istBBE ? 'B/BE' : 'C/CE'} – ${format(new Date(pruefung.datum), 'dd.MM.yyyy')}`
+  };
 
   return (
     <div className="space-y-6">
