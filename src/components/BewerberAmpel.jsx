@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Keyboard, Pen, X } from 'lucide-react';
+import { Keyboard, Pen } from 'lucide-react';
 import Zeichenflaeche from './Zeichenflaeche';
 
 function NotizOverlay({ aufgabeId, farbe, notiz, onSpeichern, onSchliessen }) {
@@ -91,6 +91,10 @@ function BewerberAmpelItem({ aufgabe, ampelWert, notiz, onAmpelChange, onNotizCh
     setNotizOverlay(null);
   };
 
+  const notizText = notiz
+    ? (typeof notiz === 'string' ? notiz : notiz.tastaturText || '')
+    : '';
+
   const OPTIONEN = [
     { farbe: 'gruen', label: 'OK', bg: 'bg-emerald-500', hover: 'hover:bg-emerald-600', ring: 'ring-emerald-300' },
     { farbe: 'gelb', label: 'Mängel', bg: 'bg-amber-400', hover: 'hover:bg-amber-500', ring: 'ring-amber-300' },
@@ -102,13 +106,13 @@ function BewerberAmpelItem({ aufgabe, ampelWert, notiz, onAmpelChange, onNotizCh
       <div className="flex items-start gap-3 py-3 border-b border-slate-100 last:border-0">
         <div className="flex-1 min-w-0 pt-1">
           <p className="text-sm text-slate-700">{aufgabe.text}</p>
-          {ampelWert && ampelWert !== 'gruen' && notiz?.tastaturText?.trim() && (
+          {ampelWert && ampelWert !== 'gruen' && notizText.trim() && (
             <p className={`mt-1.5 text-xs px-2 py-1 rounded-lg border ${
               ampelWert === 'gelb'
                 ? 'bg-amber-50 border-amber-200 text-amber-800'
                 : 'bg-red-50 border-red-200 text-red-800'
             }`}>
-              {notiz.tastaturText}
+              {notizText}
             </p>
           )}
           {ampelWert && ampelWert !== 'gruen' && notiz?.stiftData && (
