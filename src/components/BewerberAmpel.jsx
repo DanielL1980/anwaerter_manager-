@@ -119,7 +119,7 @@ function BewerberAmpelItem({ aufgabe, ampelWert, notiz, onAmpelChange, onNotizCh
   };
 
   const handleNotizGespeichert = (notizDaten) => {
-    onNotizChange(notizDaten);
+    onNotizChange(aufgabe.id, notizDaten);
     onAmpelChange(notizOverlay);
     setNotizOverlay(null);
   };
