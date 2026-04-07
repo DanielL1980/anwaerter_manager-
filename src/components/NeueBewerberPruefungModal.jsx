@@ -82,7 +82,7 @@ function NeueBewerberPruefungModal({ isOpen, onClose, onAdded }) {
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Dienstgrad</label>
             <input type="text" value={dienstgrad} onChange={e => setDienstgrad(e.target.value)}
-              className="input-field" placeholder="z.B. Feldwebel" />
+              className="input-field" placeholder="z.B. Feldwebel/Fw" />
           </div>
 
           {/* Datum */}
