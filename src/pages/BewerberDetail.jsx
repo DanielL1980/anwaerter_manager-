@@ -114,8 +114,17 @@ function BewerberDetail() {
     debouncedSave(neu);
   };
 
-  const handleAmpelChange = (aufgabeId, farbe) => update({ ampel: { ...(pruefung.ampel || {}), [aufgabeId]: farbe } });
-  const handleAmpelNotizChange = (aufgabeId, notizDaten) => update({ ampelNotizen: { ...(pruefung.ampelNotizen || {}), [aufgabeId]: notizDaten } });
+  const handleAmpelChange = (aufgabeId, farbe) => {
+    const neuesAmpel = { ...(pruefung.ampel || {}), [aufgabeId]: farbe };
+    if (farbe === null) delete neuesAmpel[aufgabeId];
+    update({ ampel: neuesAmpel });
+  };
+
+  const handleAmpelNotizChange = (aufgabeId, notizDaten) => {
+    const neueNotizen = { ...(pruefung.ampelNotizen || {}), [aufgabeId]: notizDaten };
+    update({ ampelNotizen: neueNotizen });
+  };
+
   const handleNotizChange = (feld, daten) => update({ [feld]: daten });
 
   const handleLoeschen = async () => {
@@ -152,12 +161,10 @@ function BewerberDetail() {
     zeitTatsaechlichBis: pruefung.zeitTatsaechlichBis || '',
   };
 
-  // Stub für AnwaerterTeilen (teilt die Bewerberpruefung)
   const teilenProbe = { ...pruefung, prüfling: `${pruefung.dienstgrad ? pruefung.dienstgrad + ' ' : ''}${pruefung.bewerber}`, thema: `${istBBE ? 'B/BE' : 'C/CE'} – ${format(new Date(pruefung.datum), 'dd.MM.yyyy')}` };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <Link to="/bewerber" className="flex items-center gap-2 text-teal-600 hover:text-teal-800 font-medium transition">
           <ChevronLeft size={20} /> Zurück
@@ -175,7 +182,6 @@ function BewerberDetail() {
         </div>
       </div>
 
-      {/* Hero */}
       <div className="card overflow-hidden">
         <div className="bg-gradient-to-r from-teal-600 to-emerald-600 px-6 py-5 text-white">
           <div className="flex items-start gap-4">
@@ -197,7 +203,6 @@ function BewerberDetail() {
         </div>
       </div>
 
-      {/* Aufgabengruppen */}
       {aufgabenGruppen.map(gruppe => (
         <div key={gruppe.titel} className="card overflow-hidden">
           <div className="bg-gradient-to-r from-teal-700 to-teal-600 px-5 py-3">
@@ -209,14 +214,13 @@ function BewerberDetail() {
                 ampelWert={pruefung.ampel?.[aufgabe.id] || null}
                 notiz={pruefung.ampelNotizen?.[aufgabe.id] || null}
                 onAmpelChange={(farbe) => handleAmpelChange(aufgabe.id, farbe)}
-                onNotizChange={(notizDaten) => handleAmpelNotizChange(aufgabe.id, notizDaten)}
+                onNotizChange={(aufgabeId, notizDaten) => handleAmpelNotizChange(aufgabeId, notizDaten)}
               />
             ))}
           </div>
         </div>
       ))}
 
-      {/* Notizfelder Fahren */}
       {notizFelder.map(([feld, label]) => (
         <div key={feld} className="card p-5">
           <BewerberNotizblock
@@ -228,10 +232,8 @@ function BewerberDetail() {
         </div>
       ))}
 
-      {/* Kartenpins */}
       <BewerberKartenpins pruefungId={pruefung.id} />
 
-      {/* Stoppuhr */}
       <Stoppuhr lehrprobeId={pruefung.id} probe={stoppuhrProbe}
         onZeitGespeichert={(von, bis) => update({ zeitTatsaechlichVon: von, zeitTatsaechlichBis: bis })} />
     </div>
