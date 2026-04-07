@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Keyboard, Pen, FileText, X } from 'lucide-react';
+import { Keyboard, Pen, X } from 'lucide-react';
 import Zeichenflaeche from './Zeichenflaeche';
 
 function NotizOverlay({ aufgabeId, farbe, notiz, onSpeichern, onSchliessen }) {
@@ -69,45 +69,8 @@ function NotizOverlay({ aufgabeId, farbe, notiz, onSpeichern, onSchliessen }) {
   );
 }
 
-function NotizAnzeigen({ notiz, farbe, onSchliessen }) {
-  const cfg = farbe === 'gelb'
-    ? { bg: 'from-amber-500 to-yellow-500', label: 'Mängel vorhanden' }
-    : { bg: 'from-red-500 to-red-600', label: 'Nicht erfüllt' };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onSchliessen} />
-      <div className="relative bg-white w-full sm:max-w-lg sm:rounded-2xl shadow-2xl overflow-hidden">
-        <div className={`bg-gradient-to-r ${cfg.bg} px-5 py-4 text-white flex items-center justify-between`}>
-          <div>
-            <h3 className="font-bold">Gespeicherte Notiz</h3>
-            <p className="text-white/80 text-sm">{cfg.label}</p>
-          </div>
-          <button onClick={onSchliessen} className="text-white/70 hover:text-white transition">
-            <X size={20} />
-          </button>
-        </div>
-        <div className="p-5 space-y-3">
-          {notiz?.tastaturText?.trim() && (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-              <p className="text-xs text-slate-500 font-medium mb-1">Tastaturnotiz:</p>
-              <p className="text-sm text-slate-800 whitespace-pre-wrap">{notiz.tastaturText}</p>
-            </div>
-          )}
-          {notiz?.stiftData && (
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-              <p className="text-xs text-slate-500 font-medium">✏️ Handschriftliche Notiz vorhanden</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function BewerberAmpelItem({ aufgabe, ampelWert, notiz, onAmpelChange, onNotizChange }) {
   const [notizOverlay, setNotizOverlay] = useState(null);
-  const [notizAnzeigen, setNotizAnzeigen] = useState(false);
 
   const handleKlick = (farbe) => {
     if (ampelWert === farbe) { onAmpelChange(null); return; }
@@ -128,8 +91,6 @@ function BewerberAmpelItem({ aufgabe, ampelWert, notiz, onAmpelChange, onNotizCh
     setNotizOverlay(null);
   };
 
-  const hatNotiz = notiz && (notiz.tastaturText?.trim() || notiz.stiftData);
-
   const OPTIONEN = [
     { farbe: 'gruen', label: 'OK', bg: 'bg-emerald-500', hover: 'hover:bg-emerald-600', ring: 'ring-emerald-300' },
     { farbe: 'gelb', label: 'Mängel', bg: 'bg-amber-400', hover: 'hover:bg-amber-500', ring: 'ring-amber-300' },
@@ -141,16 +102,23 @@ function BewerberAmpelItem({ aufgabe, ampelWert, notiz, onAmpelChange, onNotizCh
       <div className="flex items-start gap-3 py-3 border-b border-slate-100 last:border-0">
         <div className="flex-1 min-w-0 pt-1">
           <p className="text-sm text-slate-700">{aufgabe.text}</p>
-          {ampelWert && ampelWert !== 'gruen' && hatNotiz && (
-            <button
-              onClick={() => setNotizAnzeigen(true)}
-              className={`mt-1.5 flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg border transition ${
-                ampelWert === 'gelb'
-                  ? 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100'
-                  : 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100'
-              }`}>
-              <FileText size={12} /> Notiz anzeigen
-            </button>
+          {ampelWert && ampelWert !== 'gruen' && notiz?.tastaturText?.trim() && (
+            <p className={`mt-1.5 text-xs px-2 py-1 rounded-lg border ${
+              ampelWert === 'gelb'
+                ? 'bg-amber-50 border-amber-200 text-amber-800'
+                : 'bg-red-50 border-red-200 text-red-800'
+            }`}>
+              {notiz.tastaturText}
+            </p>
+          )}
+          {ampelWert && ampelWert !== 'gruen' && notiz?.stiftData && (
+            <p className={`mt-1 text-xs italic px-2 py-1 rounded-lg border ${
+              ampelWert === 'gelb'
+                ? 'bg-amber-50 border-amber-200 text-amber-700'
+                : 'bg-red-50 border-red-200 text-red-700'
+            }`}>
+              ✏️ Stiftnotiz vorhanden
+            </p>
           )}
         </div>
         <div className="flex gap-1.5 flex-shrink-0">
@@ -166,14 +134,6 @@ function BewerberAmpelItem({ aufgabe, ampelWert, notiz, onAmpelChange, onNotizCh
           ))}
         </div>
       </div>
-
-      {notizAnzeigen && (
-        <NotizAnzeigen
-          notiz={notiz}
-          farbe={ampelWert}
-          onSchliessen={() => setNotizAnzeigen(false)}
-        />
-      )}
 
       {notizOverlay && (
         <NotizOverlay
