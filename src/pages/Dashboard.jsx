@@ -127,13 +127,6 @@ function Dashboard() {
           <p className="text-sm text-slate-500 mt-0.5">Auswertungen</p>
         </div>
         <div className="card p-5">
-          <div className="bg-blue-100 rounded-xl p-2.5 w-fit mb-3">
-            <Award size={20} className="text-blue-600" />
-          </div>
-          <p className="text-2xl font-bold text-slate-900">{gesamtSchnitt ?? '–'}</p>
-          <p className="text-sm text-slate-500 mt-0.5">Ø Gesamtnote</p>
-        </div>
-        <div className="card p-5">
           <div className="bg-emerald-100 rounded-xl p-2.5 w-fit mb-3">
             <TrendingUp size={20} className="text-emerald-600" />
           </div>
