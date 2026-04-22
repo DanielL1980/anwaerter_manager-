@@ -1,137 +1,129 @@
 import { useState } from 'react';
 import { getEinstellung } from '../lib/db';
-import { Wand, Loader, AlertTriangle } from 'lucide-react';
+import { Wand2, Loader, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 
-function erstellePromptTheorie(durchschnitte, notizen, lehrprobe, notizblockTexte) {
-  let promptText = `Du bist ein erfahrener, empathischer Ausbildungsfahrlehrer und Mentor. Du begleitest einen Fahrlehreranwärter auf seinem Weg zur Fahrlehrerlizenz. Deine Rückmeldungen sind menschlich, wertschätzend und konstruktiv – du siehst dich als Unterstützer, nicht als Richter.
+function erstellePrompt(durchschnitte, notizen, lehrprobe) {
+  let promptText = `Du bist ein erfahrener Ausbildungsfahrlehrer. Erstelle eine strukturierte Analyse einer Auswertung als JSON.
 
+Antworte NUR mit validem JSON, kein Text davor oder danach, keine Markdown-Codeblöcke.
+
+Format:
+{
+  "gesamteindruck": "Ein kurzer Satz zum Gesamteindruck (max. 15 Wörter)",
+  "bereiche": [
+    {
+      "name": "Bereichsname",
+      "ampel": "gruen" | "gelb" | "rot",
+      "schlagwort": "2-3 Wörter Kernaussage",
+      "beobachtung": "Ein konkreter Satz was beobachtet wurde (max. 20 Wörter)",
+      "empfehlung": "Ein konkreter Handlungshinweis (max. 15 Wörter)"
+    }
+  ],
+  "staerken": ["Stärke 1 (max. 8 Wörter)", "Stärke 2"],
+  "entwicklung": ["Entwicklungsfeld 1 (max. 8 Wörter)", "Entwicklungsfeld 2"],
+  "naechster_schritt": "Ein konkreter nächster Schritt für den Anwärter (max. 20 Wörter)"
+}
+
+Ampel-Regeln:
+- gruen: Durchschnitt >= 3.5
+- gelb: Durchschnitt >= 2.5 und < 3.5  
+- rot: Durchschnitt < 2.5
+
+Daten der Auswertung:
 Anwärter: ${lehrprobe.prüfling}
-Thema des Unterrichts: ${lehrprobe.thema}
-${lehrprobe.ausbildungswoche ? `Ausbildungswoche: ${lehrprobe.ausbildungswoche}` : ''}
-${lehrprobe.unterrichtstyp ? `Art: ${lehrprobe.unterrichtstyp}` : ''}
+Thema: ${lehrprobe.thema}
 
-Erstelle eine strukturierte Analyse als Grundlage für ein Auswertungsgespräch. Schreibe in Stichpunkten, aber formuliere sie menschlich und empathisch – nicht kalt oder bürokratisch.
+Durchschnittswerte (1-5):
+- Einleitung der Fahrstunde: ${durchschnitte.einleitung?.toFixed(2) || 'N/A'}
+- Didaktische Konzeption: ${durchschnitte.didaktik?.toFixed(2) || 'N/A'}
+- Sicherheit & Verkehrsregeln: ${durchschnitte.sicherheit?.toFixed(2) || 'N/A'}
+- Kommunikation & Ausbilderverhalten: ${durchschnitte.kommunikation?.toFixed(2) || 'N/A'}
+- Abschlussbesprechung & Reflexion: ${durchschnitte.abschluss?.toFixed(2) || 'N/A'}
 
-## 1. Erster Eindruck & Stärken
-- Was hat ${lehrprobe.prüfling} besonders gut gemacht? (Durchschnitt > 3.5)
-- Was zeigt, dass er/sie auf dem richtigen Weg ist?
-- Formuliere anerkennend und konkret – nenne spezifische Beobachtungen
+Notizen des Prüfers:
+`;
 
-## 2. Entwicklungsfelder (konstruktiv formuliert)
-- Was kann noch wachsen? (Durchschnitt < 3.0)
-- Formuliere nicht als Kritik, sondern als Einladung zur Weiterentwicklung
-- Bezug zu: § 1 FschAusbO, § 4 FschAusbO, relevante StVO-Paragraphen
-
-## 3. Rechtliche Einordnung (kurz & praxisnah)
-- Welche konkreten Paragraphen sind für diesen Unterricht relevant?
-- Kurze Erklärung warum – nicht nur aufzählen
-
-## 4. Gesprächsleitfaden
-- 4-6 offene Fragen die zur Selbstreflexion einladen (z.B. "Wie hast du das erlebt?", "Was würdest du beim nächsten Mal anders machen?")
-- Fragen sollen Vertrauen aufbauen, nicht einschüchtern
-
-## 5. Nächste Schritte
-- 2-3 konkrete, erreichbare Entwicklungsziele für die nächste Unterrichtseinheit
-- Formuliere motivierend: was der Anwärter als nächstes ausprobieren kann
-
-Wichtige Anweisungen:
-- Stichpunkte, aber menschlich und empathisch formuliert
-- Nenne ${lehrprobe.prüfling} beim Namen wo es passt
-- Die Note wird NICHT erwähnt
-- Ton: wie ein erfahrener Mentor der seinen Schützling aufbauen will
-- Konkrete Paragraphen nennen wo relevant`;
-
-  promptText += `\n\nBewertungsdaten:\n- Didaktik & Methodik: ${durchschnitte.didaktik?.toFixed(2) || 'N/A'}\n- Aktivierung & Atmosphäre: ${durchschnitte.aktivierung?.toFixed(2) || 'N/A'}\n- Ausbilderverhalten: ${durchschnitte.ausbilderverhalten?.toFixed(2) || 'N/A'}`;
-
-  const relevanteNotizen = Object.entries(notizen || {})
+  const relevanteNotizen = Object.entries(notizen)
     .filter(([, text]) => text && text.trim() !== '')
     .map(([key, text]) => `- ${key.replace(/_/g, ' ')}: ${text}`)
     .join('\n');
-  if (relevanteNotizen) promptText += `\n\nHandschriftliche Notizen des Ausbilders:\n${relevanteNotizen}`;
 
-  if (notizblockTexte && notizblockTexte.length > 0) {
-    promptText += `\n\nWeitere Beobachtungsnotizen (aus dem Notizblock):\n${notizblockTexte.join('\n')}`;
-  }
-
+  promptText += relevanteNotizen || '- Keine spezifischen Notizen vorhanden.';
   return promptText;
 }
 
-function erstellePromptFahrstunde(durchschnitte, notizen, lehrprobe) {
-  let promptText = `Du bist ein erfahrener, empathischer Ausbildungsfahrlehrer und Mentor. Du begleitest einen Fahrlehreranwärter auf seinem Weg zur Fahrlehrerlizenz. Deine Rückmeldungen sind menschlich, wertschätzend und konstruktiv – du siehst dich als Unterstützer, nicht als Richter. Du kennst die Nervosität und den Druck den ein Anwärter bei einer Beobachtungsfahrt erlebt, und nimmst das in deiner Analyse Rücksicht darauf.
+const AMPEL_CONFIG = {
+  gruen:  { bg: 'bg-emerald-50', border: 'border-emerald-200', dot: 'bg-emerald-500', text: 'text-emerald-700', badge: 'bg-emerald-100 text-emerald-700', label: 'Stark' },
+  gelb:   { bg: 'bg-amber-50',   border: 'border-amber-200',   dot: 'bg-amber-400',   text: 'text-amber-700',   badge: 'bg-amber-100 text-amber-700',   label: 'Ausbaufähig' },
+  rot:    { bg: 'bg-red-50',     border: 'border-red-200',     dot: 'bg-red-500',     text: 'text-red-700',     badge: 'bg-red-100 text-red-700',       label: 'Handlungsbedarf' },
+};
 
-Anwärter: ${lehrprobe.prüfling}
-Thema der Fahrstunde: ${lehrprobe.thema}
-${lehrprobe.stufe ? `Ausbildungsstufe: ${lehrprobe.stufe}` : ''}
-${lehrprobe.ausbildungswoche ? `Ausbildungswoche: ${lehrprobe.ausbildungswoche}` : ''}
+function BereichKarte({ bereich, index }) {
+  const [offen, setOffen] = useState(false);
+  const cfg = AMPEL_CONFIG[bereich.ampel] || AMPEL_CONFIG.gelb;
 
-Erstelle eine strukturierte Analyse als Grundlage für ein Auswertungsgespräch. Schreibe in Stichpunkten, aber formuliere sie menschlich und empathisch – nicht kalt oder bürokratisch.
+  return (
+    <div className={`rounded-xl border ${cfg.border} ${cfg.bg} overflow-hidden transition-all`}>
+      <button
+        onClick={() => setOffen(!offen)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:brightness-95 transition"
+      >
+        {/* Ampelpunkt */}
+        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${cfg.dot}`} />
 
-## 1. Erster Eindruck & Stärken
-- Was hat ${lehrprobe.prüfling} in dieser Fahrstunde besonders gut gemacht? (Durchschnitt > 3.5)
-- Wo zeigt sich Sicherheit, Routine oder pädagogisches Gespür?
-- Formuliere anerkennend und konkret – nenne spezifische Beobachtungen aus der Fahrt
+        {/* Schlagwort + Name */}
+        <div className="flex-1 min-w-0">
+          <span className={`font-bold text-sm ${cfg.text}`}>{bereich.schlagwort}</span>
+          <span className="text-slate-400 text-sm mx-1.5">·</span>
+          <span className="text-slate-600 text-sm">{bereich.name}</span>
+        </div>
 
-## 2. Entwicklungsfelder (konstruktiv formuliert)
-- Was kann noch wachsen? (Durchschnitt < 3.0)
-- Bereiche: Einleitung, AGVA-Didaktik, Sicherheit & Verkehrsregeln, Kommunikation, Abschlussbesprechung
-- Formuliere nicht als Fehler, sondern als nächsten Entwicklungsschritt
-- Bezug zu: § 1 FschAusbO, § 3 FschAusbO, relevante StVO-Paragraphen – kurz erklärt warum
+        {/* Badge */}
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${cfg.badge}`}>
+          {cfg.label}
+        </span>
 
-## 3. Sicherheit & Rechtliches (praxisnah)
-- Wurden sicherheitsrelevante Aspekte ausreichend thematisiert?
-- Konkrete Paragraphen mit kurzer Begründung – nicht nur aufzählen
-- Formuliere so dass ${lehrprobe.prüfling} versteht warum das wichtig ist
+        {/* Toggle */}
+        <span className="text-slate-400 flex-shrink-0">
+          {offen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </span>
+      </button>
 
-## 4. Gesprächsleitfaden
-- 4-6 offene Fragen die zur Selbstreflexion einladen
-- Beispiele: "Wie hast du die Reaktion des Fahrschülers wahrgenommen?", "Was würdest du beim nächsten Mal in der Einleitung anders machen?"
-- Fragen sollen Vertrauen aufbauen und eigenes Nachdenken fördern
-
-## 5. Nächste Schritte
-- 2-3 konkrete, erreichbare Entwicklungsziele für die nächste Fahrstunde
-- Formuliere motivierend: was ${lehrprobe.prüfling} als nächstes ausprobieren oder vertiefen kann
-
-Wichtige Anweisungen:
-- Stichpunkte, aber menschlich und empathisch formuliert
-- Nenne ${lehrprobe.prüfling} beim Namen wo es passt und sich natürlich anfühlt
-- Die Note wird NICHT erwähnt
-- Ton: wie ein erfahrener Mentor der seinen Schützling aufbauen und stärken will
-- Konkrete Paragraphen nennen wo relevant, aber immer mit Bezug zur Praxis`;
-
-  promptText += `\n\nBewertungsdaten:\n- Einleitung: ${durchschnitte.einleitung_fahrt?.toFixed(2) || 'N/A'}\n- Didaktik/AGVA: ${durchschnitte.didaktik_fahrt?.toFixed(2) || 'N/A'}\n- Sicherheit: ${durchschnitte.sicherheit?.toFixed(2) || 'N/A'}\n- Kommunikation: ${durchschnitte.kommunikation_fahrt?.toFixed(2) || 'N/A'}\n- Abschluss: ${durchschnitte.abschluss_fahrt?.toFixed(2) || 'N/A'}`;
-
-  const relevanteNotizen = Object.entries(notizen || {})
-    .filter(([, text]) => text && text.trim() !== '')
-    .map(([key, text]) => `- ${key.replace(/_/g, ' ')}: ${text}`)
-    .join('\n');
-  if (relevanteNotizen) promptText += `\n\nHandschriftliche Notizen:\n${relevanteNotizen}`;
-
-  return promptText;
+      {offen && (
+        <div className="px-4 pb-4 pt-1 space-y-2 border-t border-opacity-50 border-current">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Beobachtung</p>
+            <p className="text-sm text-slate-700">{bereich.beobachtung}</p>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Empfehlung</p>
+            <p className={`text-sm font-medium ${cfg.text}`}>{bereich.empfehlung}</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
-function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe, notizblockTexte }) {
+function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
+  const [analyse, setAnalyse] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [kiText, setKiText] = useState('');
-  const [kopiert, setKopiert] = useState(false);
-
-  const istFahrstunde = lehrprobe?.typ === 'fahrstunde';
 
   const handleGenerate = async () => {
     setIsLoading(true);
     setError('');
+    setAnalyse(null);
 
     const apiKey = await getEinstellung('apiKey');
     if (!apiKey) {
-      setError('Fehler: Kein API-Schlüssel gefunden. Bitte füge deinen Google AI API-Schlüssel in den Einstellungen hinzu.');
+      setError('Kein API-Schlüssel gefunden. Bitte in den Einstellungen hinterlegen.');
       setIsLoading(false);
       return;
     }
 
     try {
-      const prompt = istFahrstunde
-        ? erstellePromptFahrstunde(durchschnitte, auswertung.notizen, { ...lehrprobe, ampelDaten: auswertung?.ampel || {}, ampelNotizenDaten: auswertung?.ampelNotizen || {} })
-        : erstellePromptTheorie(durchschnitte, auswertung.notizen, lehrprobe, notizblockTexte);
+      const prompt = erstellePrompt(durchschnitte, auswertung.notizen || {}, lehrprobe);
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -140,7 +132,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe, notizblockTex
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { maxOutputTokens: 8000 }
+            generationConfig: { maxOutputTokens: 1500, temperature: 0.3 }
           }),
         }
       );
@@ -152,9 +144,12 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe, notizblockTex
 
       const data = await response.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error('Keine Antwort von der KI erhalten.');
-      setKiText(text);
-      oeffneInTab(text, lehrprobe);
+      if (!text) throw new Error('Keine Antwort erhalten.');
+
+      // JSON parsen – Markdown-Fences entfernen falls vorhanden
+      const clean = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const parsed = JSON.parse(clean);
+      setAnalyse(parsed);
 
     } catch (e) {
       console.error(e);
@@ -164,96 +159,91 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe, notizblockTex
     }
   };
 
-  const handleKopieren = async () => {
-    if (!kiText) return;
-    const istFahrstunde = lehrprobe?.typ === 'fahrstunde';
-    const html = `<html><body>
-      <h1 style="font-size:16pt;border-bottom:2px solid #000;padding-bottom:6px">
-        ${istFahrstunde ? 'KI-Fahrstunden-Analyse' : 'KI-Unterrichtsanalyse'}: ${lehrprobe.thema}
-      </h1>
-      <p style="color:#666;font-size:9pt;margin-bottom:12px">Anwärter: ${lehrprobe.prüfling} · ${lehrprobe.datum}</p>
-      <div style="font-size:10pt;line-height:1.6;white-space:pre-wrap">${kiText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
-    </body></html>`;
-    try {
-      const blob = new Blob([html], { type: 'text/html' });
-      await navigator.clipboard.write([new ClipboardItem({ 'text/html': blob })]);
-    } catch {
-      const ta = document.createElement('textarea');
-      ta.value = kiText;
-      ta.style.cssText = 'position:fixed;opacity:0';
-      document.body.appendChild(ta);
-      ta.focus(); ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-    }
-    setKopiert(true);
-    setTimeout(() => setKopiert(false), 3000);
-  };
-
   return (
-    <div className="card p-5 print-container">
-      <div className="flex justify-between items-center">
+    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-md p-5">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
         <div>
-          <h3 className="text-xl font-bold text-slate-800">KI-gestützte Analyse</h3>
-          <p className="text-sm text-slate-500 mt-0.5">
-            {istFahrstunde ? 'Fahrstunden-Analyse' : 'Empathische Unterrichtsanalyse'} – öffnet in neuem Tab
-          </p>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">KI-gestützte Analyse</h3>
+          <p className="text-slate-400 text-sm">Fahrstunden-Analyse – öffnet in neuem Tab</p>
         </div>
-        <div className="flex gap-2">
-          {kiText && (
-            <button onClick={handleKopieren}
-              className={`btn ${kopiert ? 'bg-emerald-600 text-white' : 'btn-secondary'}`}
-              title="KI-Analyse in Zwischenablage kopieren">
-              {kopiert ? '✓ Kopiert!' : '📋 Kopieren'}
-            </button>
-          )}
-          <button onClick={handleGenerate} disabled={isLoading} className="btn btn-primary">
-            {isLoading ? <Loader size={20} className="animate-spin" /> : <Wand size={20} />}
-            <span>{isLoading ? 'Analysiere...' : 'Analyse erstellen'}</span>
-          </button>
-        </div>
+        <button
+          onClick={handleGenerate}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-sm transition active:scale-95 disabled:opacity-60"
+        >
+          {isLoading ? <Loader size={16} className="animate-spin" /> : <Wand2 size={16} />}
+          <span>{isLoading ? 'Analysiere...' : 'Analyse erstellen'}</span>
+        </button>
       </div>
+
+      {/* Fehler */}
       {error && (
-        <div className="mt-4 p-4 bg-red-100 text-red-800 border border-red-200 rounded-md flex gap-3">
-          <AlertTriangle size={20} className="flex-shrink-0" />
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 text-red-700">
+          <AlertTriangle size={18} className="flex-shrink-0 mt-0.5" />
           <p className="text-sm">{error}</p>
         </div>
       )}
-      {kiText && !isLoading && (
-        <p className="text-xs text-slate-400 mt-3 text-center">
-          ✓ Analyse erstellt – Tab geöffnet oder 📋 Kopieren für Google Docs
-        </p>
+
+      {/* Ergebnis */}
+      {analyse && (
+        <div className="space-y-4">
+
+          {/* Gesamteindruck */}
+          <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3">
+            <p className="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-1">Gesamteindruck</p>
+            <p className="text-slate-800 font-semibold">{analyse.gesamteindruck}</p>
+          </div>
+
+          {/* Bereiche als Stichpunkt-Karten */}
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Kompetenzbereiche</p>
+            <div className="space-y-2">
+              {analyse.bereiche?.map((bereich, i) => (
+                <BereichKarte key={i} bereich={bereich} index={i} />
+              ))}
+            </div>
+          </div>
+
+          {/* Stärken & Entwicklung nebeneinander */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+              <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-2">✅ Stärken</p>
+              <ul className="space-y-1">
+                {analyse.staerken?.map((s, i) => (
+                  <li key={i} className="text-sm text-slate-700 flex items-start gap-1.5">
+                    <span className="text-emerald-500 mt-0.5 flex-shrink-0">•</span>
+                    {s}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+              <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-2">⚡ Entwicklung</p>
+              <ul className="space-y-1">
+                {analyse.entwicklung?.map((e, i) => (
+                  <li key={i} className="text-sm text-slate-700 flex items-start gap-1.5">
+                    <span className="text-amber-500 mt-0.5 flex-shrink-0">•</span>
+                    {e}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          {/* Nächster Schritt */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-start gap-3">
+            <span className="text-2xl flex-shrink-0">🎯</span>
+            <div>
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-0.5">Nächster Schritt</p>
+              <p className="text-sm text-slate-700 font-medium">{analyse.naechster_schritt}</p>
+            </div>
+          </div>
+
+        </div>
       )}
     </div>
   );
-}
-
-function oeffneInTab(text, lehrprobe) {
-  const istFahrstunde = lehrprobe?.typ === 'fahrstunde';
-  const html = `<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Analyse – ${lehrprobe.prüfling}</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 900px; margin: 60px auto; padding: 0 30px; color: #1e293b; line-height: 1.7; }
-    h1 { font-size: 1.6rem; color: #0f172a; margin-bottom: 4px; }
-    .meta { color: #64748b; font-size: 0.95rem; margin-bottom: 40px; }
-    .inhalt { white-space: pre-wrap; font-size: 0.95rem; }
-    .drucken { position: fixed; top: 20px; right: 20px; background: ${istFahrstunde ? '#2563eb' : '#7c3aed'}; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; }
-    @media print { .drucken { display: none; } body { margin: 20px; } }
-  </style>
-</head>
-<body>
-  <button class="drucken" onclick="window.print()">🖨️ Drucken / PDF</button>
-  <h1>${istFahrstunde ? 'Fahrstunden-Analyse' : 'Unterrichtsanalyse'}: ${lehrprobe.thema}</h1>
-  <p class="meta">Anwärter: <strong>${lehrprobe.prüfling}</strong></p>
-  <div class="inhalt">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
-</body>
-</html>`;
-  const blob = new Blob([html], { type: 'text/html' });
-  window.open(URL.createObjectURL(blob), '_blank');
 }
 
 export default KiZusammenfassung;
