@@ -8,7 +8,7 @@ import GesetzesLinks from '../components/GesetzesLinks';
 import FahrtNotizblock from '../components/FahrtNotizblock';
 import TheorieNotizblock from '../components/TheorieNotizblock';
 import Stoppuhr from '../components/Stoppuhr';
-import AnwaerterTeilen from '../components/AnwaerterTeilen';
+import Teilen from '../components/Teilen';
 import GlobaleNotiz from '../components/GlobaleNotiz';
 import { ChevronLeft, Calendar, Trash2, User, GraduationCap, Car } from 'lucide-react';
 import { format } from 'date-fns';
@@ -66,7 +66,7 @@ function LehrprobeDetail() {
       <div className="flex justify-between items-center mb-6 no-print">
         <Link to="/" className="btn btn-secondary"><ChevronLeft size={18} /><span>Übersicht</span></Link>
         <div className="flex gap-2">
-          <AnwaerterTeilen lehrprobeId={probe.id} anwaerterName={probe.prüfling} probe={probe} />
+          <Teilen probe={probe} />
           <button onClick={() => setIsDeleteModalOpen(true)} className="btn bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 focus:ring-red-400 shadow-sm">
             <Trash2 size={18} />
           </button>
@@ -85,7 +85,8 @@ function LehrprobeDetail() {
                 <span className="text-white/70 text-sm font-medium">{titelTyp}</span>
               </div>
               <h1 className="text-2xl font-bold">{probe.thema}</h1>
-              <Link to={`/anwaerter/${encodeURIComponent(probe.prüfling)}`} className="text-white/70 mt-0.5 flex items-center gap-1.5 hover:text-white transition no-print text-sm">
+              <Link to={`/anwaerter/${encodeURIComponent(probe.prüfling)}`}
+                className="text-white/70 mt-0.5 flex items-center gap-1.5 hover:text-white transition no-print text-sm">
                 <User size={14} /> {probe.prüfling} – Profil ansehen →
               </Link>
             </div>
