@@ -1,10 +1,20 @@
 import { useState, useEffect } from 'react';
-import { Share2, Mail, Cloud, X, ChevronDown, ExternalLink, Check } from 'lucide-react';
-import { getEinstellung, setEinstellung, getAuswertungenForLehrprobe } from '../lib/db';
+import { Share2, X, Copy, Check, Clock, Shield, ShieldOff, Trash2, Users, ChevronLeft } from 'lucide-react';
+import {
+  erstelleEinladungslink,
+  erstelleOrdnerEinladung,
+  getOrdnerZugaenge,
+  updateOrdnerZugang,
+  deleteOrdnerZugang,
+  getAuswertungenForLehrprobe,
+  getEinstellung,
+  setEinstellung
+} from '../lib/db';
 import { erstelleDruckHTML } from './DruckAnsicht';
+import { berechneGewichteteNote, berechneKategorieDurchschnitte } from '../lib/berechnungen';
+import { KRITERIEN_FAHRSTUNDE, KRITERIEN_THEORIE } from '../data/kriterien';
 
 // =================== CLOUD UPLOAD FUNKTIONEN ===================
-
 async function uploadGoogleDrive(htmlContent, dateiname, accessToken) {
   const metadata = { name: dateiname, mimeType: 'text/html' };
   const form = new FormData();
@@ -45,87 +55,143 @@ async function uploadDropbox(htmlContent, dateiname, accessToken) {
   return 'https://www.dropbox.com/home/LehrprobeAuswertungen';
 }
 
-async function uploadMega(htmlContent, dateiname) {
-  // MEGA hat keine direkte Web-API ohne SDK – wir öffnen MEGA und zeigen Anweisung
-  throw new Error('MEGA_MANUAL');
-}
-
-// =================== OAUTH KONFIGURATION ===================
 const OAUTH_CONFIG = {
   google: {
-    name: 'Google Drive',
-    icon: '🟦',
+    name: 'Google Drive', icon: '🟦',
     authUrl: (clientId) => `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(window.location.href.split('?')[0].split('#')[0])}&response_type=token&scope=https://www.googleapis.com/auth/drive.file`,
-    tokenKey: 'googleAccessToken',
-    clientIdKey: 'googleClientId',
+    tokenKey: 'googleAccessToken', clientIdKey: 'googleClientId',
   },
   onedrive: {
-    name: 'OneDrive',
-    icon: '🔵',
+    name: 'OneDrive', icon: '🔵',
     authUrl: (clientId) => `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(window.location.href.split('?')[0].split('#')[0])}&response_type=token&scope=Files.ReadWrite`,
-    tokenKey: 'onedriveAccessToken',
-    clientIdKey: 'onedriveClientId',
+    tokenKey: 'onedriveAccessToken', clientIdKey: 'onedriveClientId',
   },
   dropbox: {
-    name: 'Dropbox',
-    icon: '📦',
+    name: 'Dropbox', icon: '📦',
     authUrl: (clientId) => `https://www.dropbox.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(window.location.href.split('?')[0].split('#')[0])}&response_type=token`,
-    tokenKey: 'dropboxAccessToken',
-    clientIdKey: 'dropboxClientId',
+    tokenKey: 'dropboxAccessToken', clientIdKey: 'dropboxClientId',
   },
 };
 
 // =================== HAUPTKOMPONENTE ===================
 function Teilen({ probe }) {
   const [offen, setOffen] = useState(false);
+  const [ansicht, setAnsicht] = useState('haupt');
   const [status, setStatus] = useState('');
   const [fehler, setFehler] = useState('');
   const [laedt, setLaedt] = useState('');
   const [auswertung, setAuswertung] = useState(null);
+  // Ordner-Teilen
+  const [zugriffTyp, setZugriffTyp] = useState('schreiben');
+  const [ordnerLink, setOrdnerLink] = useState('');
+  const [einzelLink, setEinzelLink] = useState('');
+  const [kopiert, setKopiert] = useState(false);
+  const [zugaenge, setZugaenge] = useState([]);
+  const [zugaengeLaedt, setZugaengeLaedt] = useState(false);
 
   useEffect(() => {
     getAuswertungenForLehrprobe(probe.id).then(a => setAuswertung(a[0] || null));
   }, [probe.id]);
 
-  const dateiname = `Auswertung_${probe.prüfling.replace(/\s+/g, '_')}_${probe.datum}.html`;
+  const oeffnen = () => {
+    setOffen(true);
+    setAnsicht('haupt');
+    setStatus('');
+    setFehler('');
+    setOrdnerLink('');
+    setEinzelLink('');
+    setKopiert(false);
+  };
 
+  const zurueck = () => {
+    setAnsicht('haupt');
+    setFehler('');
+    setOrdnerLink('');
+    setEinzelLink('');
+    setKopiert(false);
+  };
+
+  const dateiname = `Auswertung_${probe.prüfling.replace(/\s+/g, '_')}_${probe.datum}.html`;
   const getHTML = () => erstelleDruckHTML(probe, auswertung, null);
 
+  // ── Ordner-Link erstellen ──────────────────────────────────
+  const handleOrdnerLinkErstellen = async () => {
+    setLaedt('ordner');
+    setFehler('');
+    try {
+      const url = await erstelleOrdnerEinladung(probe.id, probe.prüfling, zugriffTyp);
+      setOrdnerLink(url);
+      setAnsicht('ordner-link');
+    } catch (e) {
+      setFehler('Fehler: ' + e.message);
+    }
+    setLaedt('');
+  };
+
+  // ── Einzelne Auswertung Link erstellen ────────────────────
+  const handleEinzelLinkErstellen = async () => {
+    setLaedt('einzeln');
+    setFehler('');
+    try {
+      const url = await erstelleEinladungslink(probe.id);
+      setEinzelLink(url);
+    } catch (e) {
+      setFehler('Fehler: ' + e.message);
+    }
+    setLaedt('');
+  };
+
+  const handleKopieren = async (text) => {
+    try { await navigator.clipboard.writeText(text); } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    setKopiert(true);
+    setTimeout(() => setKopiert(false), 2500);
+  };
+
+  // ── Zugänge laden ─────────────────────────────────────────
+  const ladeZugaenge = async () => {
+    setZugaengeLaedt(true);
+    try {
+      const z = await getOrdnerZugaenge(probe.id);
+      setZugaenge(z);
+    } catch (e) { console.error(e); }
+    setZugaengeLaedt(false);
+  };
+
+  const handleZugriffAendern = async (zugangId, neuerZugriff) => {
+    await updateOrdnerZugang(zugangId, neuerZugriff);
+    await ladeZugaenge();
+  };
+
+  const handleWiderrufen = async (zugangId) => {
+    if (!window.confirm('Zugriff wirklich widerrufen?')) return;
+    await deleteOrdnerZugang(zugangId);
+    await ladeZugaenge();
+  };
+
+  // ── Zwischenablage ────────────────────────────────────────
   const handleZwischenablage = async () => {
     const istFahrstunde = probe.typ === 'fahrstunde';
-    const { KRITERIEN_FAHRSTUNDE, KRITERIEN_THEORIE } = await import('../data/kriterien');
-    const { berechneKategorieDurchschnitte, berechneGewichteteNote } = await import('../lib/berechnungen');
     const kriterien = istFahrstunde ? KRITERIEN_FAHRSTUNDE : KRITERIEN_THEORIE;
-    const SKALA = { 5: '++', 4: '+', 3: 'o', 2: '-', 1: '--' };
-    const SKALA_TEXT = { 5: 'Sehr Gut', 4: 'Gut', 3: 'Befriedigend', 2: 'Ausreichend', 1: 'Mangelhaft' };
     const noteErgebnis = auswertung ? berechneGewichteteNote(auswertung) : null;
-
-    // Kopfzeile
     let html = `<html><body>`;
-    html += `<h1 style="font-size:16pt;text-align:center;border-bottom:2px solid #000;padding-bottom:6px">`;
-    html += `${istFahrstunde ? 'Auswertebogen Fahrstunden' : 'Auswertebogen Theoretischer Unterricht'}</h1>`;
-
-    // Metadaten-Tabelle
+    html += `<h1 style="font-size:16pt;text-align:center;border-bottom:2px solid #000;padding-bottom:6px">${istFahrstunde ? 'Auswertebogen Fahrstunden' : 'Auswertebogen Theoretischer Unterricht'}</h1>`;
     html += `<table border="1" cellpadding="4" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:10pt;margin-bottom:12px">`;
     html += `<tr><td><b>Anwärter:</b> ${probe.prüfling}</td><td><b>Thema:</b> ${probe.thema}</td></tr>`;
-    html += `<tr><td><b>Datum:</b> ${probe.datum}</td><td><b>${istFahrstunde ? 'Ausbildungsstufe' : 'Art'}:</b> ${probe.stufe || probe.unterrichtstyp || '–'}</td></tr>`;
+    html += `<tr><td><b>Datum:</b> ${probe.datum}</td><td><b>Ausbildungsstufe:</b> ${probe.stufe || '–'}</td></tr>`;
     if (probe.zeitVon) {
-      const geplantMin = (parseInt(probe.zeitBis.split(':')[0])*60+parseInt(probe.zeitBis.split(':')[1]))-(parseInt(probe.zeitVon.split(':')[0])*60+parseInt(probe.zeitVon.split(':')[1]));
-      html += `<tr><td><b>Geplante Zeit:</b> ${probe.zeitVon} – ${probe.zeitBis} Uhr (${geplantMin} Min.)</td>`;
-      if (probe.zeitTatsaechlichVon) {
-        const tatsMin = (parseInt(probe.zeitTatsaechlichBis.split(':')[0])*60+parseInt(probe.zeitTatsaechlichBis.split(':')[1]))-(parseInt(probe.zeitTatsaechlichVon.split(':')[0])*60+parseInt(probe.zeitTatsaechlichVon.split(':')[1]));
-        html += `<td><b>Tatsächliche Zeit:</b> ${probe.zeitTatsaechlichVon} – ${probe.zeitTatsaechlichBis} Uhr (${tatsMin} Min.)</td></tr>`;
-      } else { html += `<td></td></tr>`; }
+      html += `<tr><td><b>Geplante Zeit:</b> ${probe.zeitVon} – ${probe.zeitBis} Uhr</td>`;
+      html += probe.zeitTatsaechlichVon ? `<td><b>Tatsächlich:</b> ${probe.zeitTatsaechlichVon} – ${probe.zeitTatsaechlichBis} Uhr</td></tr>` : `<td></td></tr>`;
     }
-    if (probe.ausbildungswoche) html += `<tr><td><b>Ausbildungswoche:</b> ${probe.ausbildungswoche}</td><td><b>Ausbildungsstunde:</b> ${probe.ausbildungsstunde || '–'}</td></tr>`;
     html += `</table>`;
-
-    // Bewertungsbögen
     kriterien.forEach(kategorie => {
-      html += `<h2 style="font-size:11pt;background:#333;color:#fff;padding:4px 8px;margin-top:10px">`;
-      html += `${kategorie.titel}${kategorie.gewichtung > 1 ? ` (${kategorie.gewichtung}-fach gewichtet)` : ''}</h2>`;
+      html += `<h2 style="font-size:11pt;background:#333;color:#fff;padding:4px 8px;margin-top:10px">${kategorie.titel}</h2>`;
       html += `<table border="1" cellpadding="4" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:9pt">`;
-      html += `<tr style="background:#f0f0f0"><th style="width:40%;text-align:left">Kriterium</th><th style="width:8%">++</th><th style="width:8%">+</th><th style="width:8%">o</th><th style="width:8%">-</th><th style="width:8%">--</th><th style="width:20%;text-align:left">Notizen</th></tr>`;
+      html += `<tr style="background:#f0f0f0"><th style="width:40%;text-align:left">Kriterium</th><th>++</th><th>+</th><th>o</th><th>-</th><th>--</th><th style="text-align:left">Notizen</th></tr>`;
       kategorie.punkte.forEach(punkt => {
         const id = `${kategorie.id}_${punkt.id}`;
         const bew = auswertung?.punkte?.[id];
@@ -136,115 +202,50 @@ function Teilen({ probe }) {
       });
       html += `</table>`;
     });
-
-    // Notenberechnung
-    if (noteErgebnis) {
-      html += `<h2 style="font-size:11pt;margin-top:14px">Notenberechnung</h2>`;
-      html += `<table border="1" cellpadding="4" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:9pt">`;
-      html += `<tr style="background:#333;color:#fff">`;
-      kriterien.forEach(k => { html += `<th>${k.titel}<br/>(${k.gewichtung}-fach)</th>`; });
-      html += `<th>Gew. Index</th><th>Note</th></tr><tr>`;
-      const durchschnitte = berechneKategorieDurchschnitte(auswertung);
-      kriterien.forEach(k => { html += `<td style="text-align:center">${durchschnitte[k.id]?.toFixed(2) || '–'}</td>`; });
-      html += `<td style="text-align:center"><b>${noteErgebnis.index}</b></td>`;
-      html += `<td style="text-align:center;font-size:14pt"><b>${noteErgebnis.note}</b></td></tr></table>`;
-      html += `<p style="font-size:8pt;color:#666;margin-top:4px">sehr gut = 1,0; 1,3 | gut = 1,7; 2,0; 2,3 | befriedigend = 2,7; 3,0; 3,3 | ausreichend = 3,7; 4,0; 4,3 | mangelhaft = 4,7; 5,0; 5,3 | ungenügend = 5,7; 6,0</p>`;
-    }
-
-    // Gesamteindruck
-    if (auswertung?.gesamtnote) {
-      html += `<h2 style="font-size:11pt;margin-top:14px">Gesamteindruck & Bemerkungen</h2>`;
-      html += `<div style="border:1px solid #ccc;padding:8px;font-size:9pt;white-space:pre-wrap">${auswertung.gesamtnote}</div>`;
-    }
-
+    if (noteErgebnis) html += `<p style="margin-top:12px"><b>Gewichteter Index:</b> ${noteErgebnis.index} &nbsp;|&nbsp; <b>Note:</b> ${noteErgebnis.note}</p>`;
+    if (auswertung?.gesamtnote) html += `<h2 style="font-size:11pt;margin-top:14px">Gesamteindruck</h2><div style="border:1px solid #ccc;padding:8px">${auswertung.gesamtnote}</div>`;
     html += `</body></html>`;
-
     try {
       const blob = new Blob([html], { type: 'text/html' });
-      const item = new ClipboardItem({ 'text/html': blob });
-      await navigator.clipboard.write([item]);
-      setStatus('✓ Formatierter Text kopiert! Öffne Google Docs → Neu → long-press → Einfügen');
-    } catch (e) {
-      // Fallback: Plain Text
+      await navigator.clipboard.write([new ClipboardItem({ 'text/html': blob })]);
+      setStatus('✓ Formatierter Text kopiert! Google Docs → Neu → long-press → Einfügen');
+    } catch {
       const ta = document.createElement('textarea');
       ta.value = html.replace(/<[^>]+>/g, '');
       ta.style.cssText = 'position:fixed;opacity:0';
-      document.body.appendChild(ta);
-      ta.focus(); ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      setStatus('✓ Text kopiert (einfaches Format). Öffne Google Docs → long-press → Einfügen');
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      setStatus('✓ Text kopiert. Google Docs → long-press → Einfügen');
     }
   };
 
-  const handleEmail = async () => {
-    const emailKey = await getEinstellung('emailAdresse');
-    const betreff = encodeURIComponent(`Auswertung: ${probe.prüfling} – ${probe.thema}`);
-    const body = encodeURIComponent(
-      `Auswertung vom ${probe.datum}\nAnwärter: ${probe.prüfling}\nThema: ${probe.thema}\n\nDie vollständige Auswertung bitte über die App abrufen.`
-    );
-    const mailto = emailKey
-      ? `mailto:${emailKey}?subject=${betreff}&body=${body}`
-      : `mailto:?subject=${betreff}&body=${body}`;
-    window.open(mailto, '_blank');
-  };
-
+  // ── Cloud Upload ──────────────────────────────────────────
   const handleCloud = async (dienst) => {
-    setLaedt(dienst);
-    setFehler('');
-    setStatus('');
+    setLaedt(dienst); setFehler(''); setStatus('');
     try {
       const config = OAUTH_CONFIG[dienst];
-      const tokenKey = config.tokenKey;
-      const clientIdKey = config.clientIdKey;
-      const clientId = await getEinstellung(clientIdKey);
-      let token = await getEinstellung(tokenKey);
-
-      if (!clientId) {
-        setFehler(`Kein Client-ID für ${config.name} eingerichtet. Bitte in den Einstellungen konfigurieren.`);
-        setLaedt('');
-        return;
-      }
-
+      const clientId = await getEinstellung(config.clientIdKey);
+      let token = await getEinstellung(config.tokenKey);
+      if (!clientId) { setFehler(`Kein Client-ID für ${config.name}. Bitte in Einstellungen konfigurieren.`); setLaedt(''); return; }
       if (!token) {
-        // Token aus URL-Hash lesen (nach OAuth-Redirect)
         const hash = window.location.hash;
         if (hash.includes('access_token')) {
           const params = new URLSearchParams(hash.substring(1));
           token = params.get('access_token');
-          if (token) {
-            await setEinstellung(tokenKey, token);
-            window.location.hash = '';
-          }
+          if (token) { await setEinstellung(config.tokenKey, token); window.location.hash = ''; }
         }
-        if (!token) {
-          // Dienst merken und OAuth Flow starten
-          sessionStorage.setItem('oauthDienst', dienst);
-          window.location.href = config.authUrl(clientId);
-          return;
-        }
+        if (!token) { sessionStorage.setItem('oauthDienst', dienst); window.location.href = config.authUrl(clientId); return; }
       }
-
       const html = getHTML();
       let url;
-
       if (dienst === 'google') url = await uploadGoogleDrive(html, dateiname, token);
       else if (dienst === 'onedrive') url = await uploadOneDrive(html, dateiname, token);
       else if (dienst === 'dropbox') url = await uploadDropbox(html, dateiname, token);
-
-      setStatus(`✓ Erfolgreich hochgeladen!`);
+      setStatus('✓ Erfolgreich hochgeladen!');
       setTimeout(() => window.open(url, '_blank'), 500);
     } catch (e) {
-      if (e.message === 'MEGA_MANUAL') {
-        setStatus('MEGA: Bitte die Datei manuell hochladen – "Drucken als HTML" und dann in mega.io hochladen.');
-      } else if (e.message.includes('401')) {
-        // Token abgelaufen
-        const config = OAUTH_CONFIG[dienst];
-        await setEinstellung(config.tokenKey, '');
-        setFehler(`Token abgelaufen. Bitte erneut anmelden.`);
-      } else {
-        setFehler(`Fehler: ${e.message}`);
-      }
+      if (e.message.includes('401')) { const config = OAUTH_CONFIG[dienst]; await setEinstellung(config.tokenKey, ''); setFehler('Token abgelaufen. Bitte erneut anmelden.'); }
+      else setFehler(`Fehler: ${e.message}`);
     }
     setLaedt('');
   };
@@ -253,18 +254,22 @@ function Teilen({ probe }) {
     const html = getHTML();
     const blob = new Blob([html], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = dateiname;
-    a.click();
+    const a = document.createElement('a'); a.href = url; a.download = dateiname; a.click();
     setTimeout(() => window.open('https://mega.io', '_blank'), 500);
-    setStatus('Datei wurde heruntergeladen. Bitte in MEGA hochladen.');
+    setStatus('Datei heruntergeladen. Bitte in MEGA hochladen.');
+  };
+
+  const titelMap = {
+    haupt: 'Teilen & Drucken',
+    ordner: 'Ordner teilen',
+    'ordner-link': 'Link erstellt',
+    einzeln: 'Auswertung teilen',
+    zugaenge: 'Zugänge verwalten',
   };
 
   return (
     <>
-      <button onClick={() => setOffen(true)}
-        className="btn btn-secondary flex items-center gap-2">
+      <button onClick={oeffnen} className="btn btn-secondary flex items-center gap-2">
         <Share2 size={18} />
         <span className="hidden sm:inline">Teilen</span>
       </button>
@@ -274,87 +279,247 @@ function Teilen({ probe }) {
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setOffen(false)} />
           <div className="relative bg-white w-full sm:max-w-md sm:rounded-2xl shadow-2xl overflow-hidden">
 
+            {/* Header */}
             <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-5 py-4 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Share2 size={18} />
-                <h3 className="font-bold">Auswertung teilen & drucken</h3>
+                {ansicht !== 'haupt' && (
+                  <button onClick={zurueck} className="text-white/70 hover:text-white transition mr-1">
+                    <ChevronLeft size={20} />
+                  </button>
+                )}
+                <div className="flex items-center gap-2">
+                  <Share2 size={18} />
+                  <h3 className="font-bold">{titelMap[ansicht]}</h3>
+                </div>
               </div>
               <button onClick={() => setOffen(false)} className="text-white/70 hover:text-white">
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-5 space-y-3">
-              {/* Drucken */}
-              <button onClick={() => { const html = getHTML(); const b = new Blob([html], {type:'text/html'}); window.open(URL.createObjectURL(b), '_blank'); }}
-                className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition text-left">
-                <span className="text-2xl">🖨️</span>
-                <div>
-                  <p className="font-bold text-slate-800">Drucken / PDF</p>
-                  <p className="text-xs text-slate-500">Öffnet sauberes A4-Layout in neuem Tab</p>
-                </div>
-              </button>
+            <div className="p-5 space-y-3 max-h-[75vh] overflow-y-auto">
 
-              {/* Zwischenablage */}
-              <button onClick={handleZwischenablage}
-                className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-emerald-300 bg-emerald-50 hover:border-emerald-400 hover:bg-emerald-100 transition text-left">
-                <span className="text-2xl">📋</span>
-                <div>
-                  <p className="font-bold text-slate-800">In Zwischenablage kopieren</p>
-                  <p className="text-xs text-slate-600">Text kopieren → Google Docs öffnen → Einfügen</p>
-                </div>
-              </button>
+              {/* ── HAUPT ──────────────────────────────────────────────── */}
+              {ansicht === 'haupt' && (
+                <>
+                  {/* Drucken */}
+                  <button onClick={() => { const b = new Blob([getHTML()], {type:'text/html'}); window.open(URL.createObjectURL(b), '_blank'); }}
+                    className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition text-left">
+                    <span className="text-2xl">🖨️</span>
+                    <div><p className="font-bold text-slate-800">Drucken / PDF</p><p className="text-xs text-slate-500">Öffnet sauberes A4-Layout in neuem Tab</p></div>
+                  </button>
 
-              {/* E-Mail */}
-              <button onClick={handleEmail}
-                className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition text-left">
-                <span className="text-2xl">📧</span>
-                <div>
-                  <p className="font-bold text-slate-800">Per E-Mail senden</p>
-                  <p className="text-xs text-slate-500">Öffnet deinen E-Mail-Client (Outlook, Gmail, etc.)</p>
-                </div>
-              </button>
+                  {/* Zwischenablage */}
+                  <button onClick={handleZwischenablage}
+                    className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-emerald-300 bg-emerald-50 hover:border-emerald-400 hover:bg-emerald-100 transition text-left">
+                    <span className="text-2xl">📋</span>
+                    <div><p className="font-bold text-slate-800">In Zwischenablage kopieren</p><p className="text-xs text-slate-600">Google Docs → long-press → Einfügen</p></div>
+                  </button>
 
-              {/* Cloud-Dienste */}
-              {[
-                { id: 'google', label: 'Google Drive', emoji: '🟦', desc: '15 GB kostenlos' },
-                { id: 'onedrive', label: 'Microsoft OneDrive', emoji: '🔵', desc: '5 GB kostenlos' },
-                { id: 'dropbox', label: 'Dropbox', emoji: '📦', desc: '2 GB kostenlos' },
-              ].map(d => (
-                <button key={d.id} onClick={() => handleCloud(d.id)} disabled={laedt === d.id}
-                  className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-left">
-                  <span className="text-2xl">{laedt === d.id ? '⟳' : d.emoji}</span>
-                  <div>
-                    <p className="font-bold text-slate-800">{d.label}</p>
-                    <p className="text-xs text-slate-500">{d.desc} · Als HTML-Datei hochladen</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-slate-200" />
+                    <span className="text-xs text-slate-400 font-medium">KOLLEGEN EINLADEN</span>
+                    <div className="flex-1 h-px bg-slate-200" />
                   </div>
-                </button>
-              ))}
 
-              {/* MEGA */}
-              <button onClick={handleMega}
-                className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-red-300 hover:bg-red-50 transition text-left">
-                <span className="text-2xl">🔴</span>
-                <div>
-                  <p className="font-bold text-slate-800">MEGA</p>
-                  <p className="text-xs text-slate-500">20 GB kostenlos · Datei herunterladen + in MEGA hochladen</p>
-                </div>
-              </button>
+                  {/* Ganzen Ordner teilen */}
+                  <button onClick={() => setAnsicht('ordner')}
+                    className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-violet-300 hover:bg-violet-50 transition text-left">
+                    <span className="text-2xl">📁</span>
+                    <div>
+                      <p className="font-bold text-slate-800">Ganzen Ordner teilen</p>
+                      <p className="text-xs text-slate-500">Alle Auswertungen von {probe.prüfling} – Lese- oder Schreibzugriff wählbar</p>
+                    </div>
+                  </button>
 
-              {status && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-700">
-                  {status}
-                </div>
+                  {/* Nur diese Auswertung */}
+                  <button onClick={() => { setAnsicht('einzeln'); setEinzelLink(''); }}
+                    className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition text-left">
+                    <span className="text-2xl">📄</span>
+                    <div>
+                      <p className="font-bold text-slate-800">Nur diese Auswertung teilen</p>
+                      <p className="text-xs text-slate-500">Schreibzugriff auf diese Auswertung, 7 Tage gültig</p>
+                    </div>
+                  </button>
+
+                  {/* Zugänge verwalten */}
+                  <button onClick={() => { setAnsicht('zugaenge'); ladeZugaenge(); }}
+                    className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition text-left">
+                    <Users size={22} className="text-slate-500 flex-shrink-0" />
+                    <div>
+                      <p className="font-bold text-slate-800">Zugänge verwalten</p>
+                      <p className="text-xs text-slate-500">Zugriff einschränken oder widerrufen</p>
+                    </div>
+                  </button>
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px bg-slate-200" />
+                    <span className="text-xs text-slate-400 font-medium">CLOUD & E-MAIL</span>
+                    <div className="flex-1 h-px bg-slate-200" />
+                  </div>
+
+                  {/* E-Mail */}
+                  <button onClick={async () => {
+                    const emailKey = await getEinstellung('emailAdresse');
+                    const betreff = encodeURIComponent(`Auswertung: ${probe.prüfling} – ${probe.thema}`);
+                    const body = encodeURIComponent(`Auswertung vom ${probe.datum}\nAnwärter: ${probe.prüfling}\nThema: ${probe.thema}`);
+                    window.open(`mailto:${emailKey || ''}?subject=${betreff}&body=${body}`, '_blank');
+                  }} className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition text-left">
+                    <span className="text-2xl">📧</span>
+                    <div><p className="font-bold text-slate-800">Per E-Mail senden</p><p className="text-xs text-slate-500">Öffnet E-Mail-Client</p></div>
+                  </button>
+
+                  {/* Cloud-Dienste */}
+                  {[
+                    { id: 'google', label: 'Google Drive', emoji: '🟦', desc: '15 GB kostenlos' },
+                    { id: 'onedrive', label: 'OneDrive', emoji: '🔵', desc: '5 GB kostenlos' },
+                    { id: 'dropbox', label: 'Dropbox', emoji: '📦', desc: '2 GB kostenlos' },
+                  ].map(d => (
+                    <button key={d.id} onClick={() => handleCloud(d.id)} disabled={laedt === d.id}
+                      className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50 transition text-left">
+                      <span className="text-2xl">{laedt === d.id ? '⟳' : d.emoji}</span>
+                      <div><p className="font-bold text-slate-800">{d.label}</p><p className="text-xs text-slate-500">{d.desc}</p></div>
+                    </button>
+                  ))}
+
+                  <button onClick={handleMega}
+                    className="w-full flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 hover:border-red-300 hover:bg-red-50 transition text-left">
+                    <span className="text-2xl">🔴</span>
+                    <div><p className="font-bold text-slate-800">MEGA</p><p className="text-xs text-slate-500">20 GB kostenlos</p></div>
+                  </button>
+
+                  {status && <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-700">{status}</div>}
+                  {fehler && <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">{fehler}</div>}
+                </>
               )}
-              {fehler && (
-                <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
-                  {fehler}
-                </div>
+
+              {/* ── ORDNER TEILEN ──────────────────────────────────────── */}
+              {ansicht === 'ordner' && (
+                <>
+                  <div className="bg-violet-50 border border-violet-100 rounded-xl p-3">
+                    <p className="text-sm font-semibold text-violet-800 mb-1">📁 Ordner: {probe.prüfling}</p>
+                    <p className="text-xs text-violet-600">Der Kollege erhält Zugriff auf alle Auswertungen dieses Anwärters.</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700 mb-2">Zugriff wählen:</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setZugriffTyp('lesen')}
+                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-semibold transition ${zugriffTyp === 'lesen' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                        <Shield size={16} /> Nur lesen
+                      </button>
+                      <button onClick={() => setZugriffTyp('schreiben')}
+                        className={`flex-1 flex items-center justify-center gap-2 px-3 py-3 rounded-xl border-2 text-sm font-semibold transition ${zugriffTyp === 'schreiben' ? 'border-violet-500 bg-violet-50 text-violet-700' : 'border-slate-200 text-slate-500 hover:border-slate-300'}`}>
+                        <ShieldOff size={16} /> Lesen & Schreiben
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+                    <Clock size={14} className="text-amber-500 flex-shrink-0" />
+                    <span>Einladungslink ist <b>7 Tage</b> gültig</span>
+                  </div>
+                  <button onClick={handleOrdnerLinkErstellen} disabled={laedt === 'ordner'}
+                    className="w-full py-3 rounded-xl bg-violet-600 text-white font-bold hover:bg-violet-700 transition active:scale-95 disabled:opacity-60">
+                    {laedt === 'ordner' ? '⏳ Wird erstellt...' : '🔗 Einladungslink erstellen'}
+                  </button>
+                  {fehler && <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-xl">{fehler}</p>}
+                </>
               )}
 
-              <p className="text-xs text-slate-400 text-center pt-1">
-                Cloud-Dienste in den <a href="/einstellungen" className="text-indigo-500 underline">Einstellungen</a> konfigurieren
-              </p>
+              {/* ── ORDNER-LINK ANZEIGEN ───────────────────────────────── */}
+              {ansicht === 'ordner-link' && (
+                <>
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                    <p className="text-sm font-semibold text-emerald-700 mb-1">✅ Link erstellt!</p>
+                    <p className="text-xs text-emerald-600">{zugriffTyp === 'lesen' ? '👁 Nur lesen' : '✏️ Lesen & Schreiben'} · 7 Tage gültig</p>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                    <p className="text-xs text-slate-500 mb-1 font-medium">Einladungslink:</p>
+                    <p className="text-xs text-slate-700 break-all font-mono">{ordnerLink}</p>
+                  </div>
+                  <button onClick={() => handleKopieren(ordnerLink)}
+                    className={`w-full py-3 rounded-xl font-bold transition active:scale-95 flex items-center justify-center gap-2 ${kopiert ? 'bg-emerald-600 text-white' : 'bg-violet-600 text-white hover:bg-violet-700'}`}>
+                    {kopiert ? <Check size={18} /> : <Copy size={18} />}
+                    {kopiert ? 'Link kopiert!' : 'Link kopieren'}
+                  </button>
+                </>
+              )}
+
+              {/* ── EINZELNE AUSWERTUNG ────────────────────────────────── */}
+              {ansicht === 'einzeln' && (
+                <>
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+                    <p className="text-sm font-semibold text-blue-800 mb-1">📄 Diese Auswertung teilen</p>
+                    <p className="text-xs text-blue-600">Kollege erhält Schreibzugriff auf genau diese Auswertung.</p>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-slate-500 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+                    <Clock size={14} className="text-amber-500 flex-shrink-0" />
+                    <span>Einladungslink ist <b>7 Tage</b> gültig</span>
+                  </div>
+                  {!einzelLink ? (
+                    <button onClick={handleEinzelLinkErstellen} disabled={laedt === 'einzeln'}
+                      className="w-full py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition active:scale-95 disabled:opacity-60">
+                      {laedt === 'einzeln' ? '⏳ Wird erstellt...' : '🔗 Einladungslink erstellen'}
+                    </button>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3">
+                        <p className="text-xs text-slate-500 mb-1 font-medium">Einladungslink:</p>
+                        <p className="text-xs text-slate-700 break-all font-mono">{einzelLink}</p>
+                      </div>
+                      <button onClick={() => handleKopieren(einzelLink)}
+                        className={`w-full py-3 rounded-xl font-bold transition active:scale-95 flex items-center justify-center gap-2 ${kopiert ? 'bg-emerald-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+                        {kopiert ? <Check size={18} /> : <Copy size={18} />}
+                        {kopiert ? 'Link kopiert!' : 'Link kopieren'}
+                      </button>
+                      <button onClick={() => setEinzelLink('')}
+                        className="w-full py-2 rounded-xl border border-slate-200 text-slate-500 text-sm hover:bg-slate-50 transition">
+                        Neuen Link erstellen
+                      </button>
+                    </div>
+                  )}
+                  {fehler && <p className="text-red-500 text-sm bg-red-50 px-3 py-2 rounded-xl">{fehler}</p>}
+                </>
+              )}
+
+              {/* ── ZUGÄNGE VERWALTEN ──────────────────────────────────── */}
+              {ansicht === 'zugaenge' && (
+                <>
+                  <p className="text-sm font-semibold text-slate-700">Aktive Zugänge für {probe.prüfling}:</p>
+                  {zugaengeLaedt ? (
+                    <p className="text-sm text-slate-400 text-center py-6">Lade Zugänge...</p>
+                  ) : zugaenge.length === 0 ? (
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center">
+                      <p className="text-sm text-slate-500">Noch keine aktiven Zugänge.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {zugaenge.map(z => (
+                        <div key={z.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center gap-3">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-700">Gast · {z.gastId?.slice(0, 8)}...</p>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              {z.zugriff === 'lesen' ? '👁 Nur lesen' : '✏️ Lesen & Schreiben'}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 flex-shrink-0">
+                            <button onClick={() => handleZugriffAendern(z.id, z.zugriff === 'lesen' ? 'schreiben' : 'lesen')}
+                              title={z.zugriff === 'lesen' ? 'Schreibzugriff erteilen' : 'Auf Lesezugriff einschränken'}
+                              className="p-2 rounded-lg hover:bg-slate-200 transition text-slate-500">
+                              {z.zugriff === 'lesen' ? <ShieldOff size={16} /> : <Shield size={16} />}
+                            </button>
+                            <button onClick={() => handleWiderrufen(z.id)}
+                              title="Zugriff widerrufen"
+                              className="p-2 rounded-lg hover:bg-red-100 transition text-red-400">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
             </div>
           </div>
         </div>
