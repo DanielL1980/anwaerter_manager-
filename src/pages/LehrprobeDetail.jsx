@@ -5,7 +5,7 @@ import KiZusammenfassung from '../components/KiZusammenfassung';
 import AnwaerterTeilen from '../components/AnwaerterTeilen';
 import GlobaleNotiz from '../components/GlobaleNotiz';
 import Stoppuhr from '../components/Stoppuhr';
-import KartenpinsKarte from '../components/KartenpinsKarte';
+import Schnellnotizen from '../components/Schnellnotizen';
 import { ChevronLeft, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import { berechneKategorieDurchschnitte } from '../lib/berechnungen';
 import { KRITERIEN_FAHRSTUNDE, KRITERIEN_THEORIE } from '../data/kriterien';
@@ -30,9 +30,7 @@ function KriteriumZeile({ id, punkt, auswertung, onBewertung, onNotiz }) {
   return (
     <div className="py-3 border-b border-slate-100 last:border-0">
       <div className="flex items-start gap-2">
-        {/* Text */}
         <p className="flex-1 text-sm text-slate-700 dark:text-slate-300 pt-1 min-w-0">{punkt.text}</p>
-        {/* Bewertungsbuttons */}
         <div className="flex gap-1 flex-shrink-0">
           {SKALA.map(s => (
             <button
@@ -49,7 +47,6 @@ function KriteriumZeile({ id, punkt, auswertung, onBewertung, onNotiz }) {
           ))}
         </div>
       </div>
-      {/* Notiz */}
       <div className="mt-1.5 ml-0">
         {notizOffen || notiz ? (
           <textarea
@@ -61,10 +58,7 @@ function KriteriumZeile({ id, punkt, auswertung, onBewertung, onNotiz }) {
             className="w-full text-xs p-2 border border-slate-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition resize-none"
           />
         ) : (
-          <button
-            onClick={() => setNotizOffen(true)}
-            className="text-xs text-slate-400 hover:text-indigo-500 transition"
-          >
+          <button onClick={() => setNotizOffen(true)} className="text-xs text-slate-400 hover:text-indigo-500 transition">
             + Notiz hinzufügen
           </button>
         )}
@@ -81,7 +75,6 @@ function KategorieBlock({ kategorie, auswertung, onBewertung, onNotiz }) {
 
   return (
     <div className="card overflow-hidden mb-3">
-      {/* Klapp-Header */}
       <button
         onClick={() => setOffen(!offen)}
         className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-700 to-violet-700 hover:from-indigo-800 hover:to-violet-800 transition text-left"
@@ -99,8 +92,6 @@ function KategorieBlock({ kategorie, auswertung, onBewertung, onNotiz }) {
           {offen ? <ChevronUp size={18} className="text-white" /> : <ChevronDown size={18} className="text-white" />}
         </div>
       </button>
-
-      {/* Kriterien */}
       {offen && (
         <div className="px-4 py-1">
           {kriterien.map(punkt => (
@@ -139,20 +130,14 @@ function LehrprobeDetail() {
   }, [id]);
 
   const handleBewertung = (kriteriumId, wert) => {
-    const neu = {
-      ...auswertung,
-      punkte: { ...auswertung.punkte, [kriteriumId]: wert },
-    };
+    const neu = { ...auswertung, punkte: { ...auswertung.punkte, [kriteriumId]: wert } };
     if (wert === null) delete neu.punkte[kriteriumId];
     setAuswertung(neu);
     debouncedSave(neu);
   };
 
   const handleNotiz = (kriteriumId, text) => {
-    const neu = {
-      ...auswertung,
-      notizen: { ...auswertung.notizen, [kriteriumId]: text },
-    };
+    const neu = { ...auswertung, notizen: { ...auswertung.notizen, [kriteriumId]: text } };
     setAuswertung(neu);
     debouncedSave(neu);
   };
@@ -178,7 +163,6 @@ function LehrprobeDetail() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <Link to="/anwaerter" className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-medium transition">
           <ChevronLeft size={20} /> Zurück
@@ -192,7 +176,6 @@ function LehrprobeDetail() {
         </div>
       </div>
 
-      {/* Hero */}
       <div className="card overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5 text-white">
           <div className="flex items-start gap-4">
@@ -215,7 +198,6 @@ function LehrprobeDetail() {
         </div>
       </div>
 
-      {/* Kategorien klappbar */}
       <div>
         {kriterien.map(kategorie => (
           <KategorieBlock
@@ -228,7 +210,6 @@ function LehrprobeDetail() {
         ))}
       </div>
 
-      {/* Gesamteindruck */}
       <div className="card p-5">
         <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-3">Gesamteindruck & Bemerkungen</h3>
         <textarea
@@ -240,18 +221,14 @@ function LehrprobeDetail() {
         />
       </div>
 
-      {/* KI Analyse */}
       {auswertung && probe && (
         <KiZusammenfassung auswertung={auswertung} durchschnitte={durchschnitte} lehrprobe={probe} />
       )}
 
-      {/* Kartenpins */}
-      <KartenpinsKarte lehrprobeId={id} />
+      <Schnellnotizen lehrprobeId={id} />
 
-      {/* Globale Schnellnotiz Floating Button */}
       <GlobaleNotiz lehrprobeId={id} />
 
-      {/* Stoppuhr */}
       <Stoppuhr lehrprobeId={id} probe={probe}
         onZeitGespeichert={(von, bis) => setProbe(p => ({ ...p, zeitTatsaechlichVon: von, zeitTatsaechlichBis: bis }))} />
     </div>
