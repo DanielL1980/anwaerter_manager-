@@ -14,38 +14,26 @@ function erstellePrompt(durchschnitte, notizen, lehrprobe) {
   const pruefling = lehrprobe?.prüfling || lehrprobe?.pruefling || lehrprobe?.name || 'Unbekannt';
   const thema = lehrprobe?.thema || 'Unbekannt';
 
-  return `Du bist ein erfahrener Ausbildungsfahrlehrer der Bundeswehr. Erstelle eine Analyse einer Fahrstunden-Auswertung.
+  return `Du bist ein erfahrener Ausbildungsfahrlehrer der Bundeswehr.
 
-Antworte NUR mit dem JSON-Objekt. Kein Text davor oder danach.
+Erstelle eine Fahrstunden-Analyse. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt, ohne jeglichen Text davor oder danach, ohne Markdown, ohne Codeblöcke.
 
-Format:
-{
-  "gesamteindruck": "Ein Satz (max. 12 Woerter)",
-  "bereiche": [
-    {
-      "name": "Bereichsname",
-      "ampel": "gruen",
-      "schlagwort": "2-3 Woerter",
-      "beobachtung": "Ein Satz (max. 15 Woerter)",
-      "empfehlung": "Ein Satz (max. 12 Woerter)"
-    }
-  ],
-  "staerken": ["Staerke 1", "Staerke 2"],
-  "entwicklung": ["Feld 1", "Feld 2"],
-  "naechster_schritt": "Ein Satz (max. 15 Woerter)"
-}
+Das JSON muss exakt diesem Schema folgen:
+{"gesamteindruck":"string","bereiche":[{"name":"string","ampel":"gruen|gelb|rot","schlagwort":"string","beobachtung":"string","empfehlung":"string"}],"staerken":["string"],"entwicklung":["string"],"naechster_schritt":"string"}
 
-Ampel: gruen >= 3.5 | gelb >= 2.5 | rot < 2.5
+Regeln:
+- ampel: gruen wenn Wert >= 3.5, gelb wenn >= 2.5, sonst rot
+- Alle Texte kurz und prägnant (max. 15 Wörter pro Feld)
+- Genau 5 Bereiche (einen pro Bewertungsbereich)
 
-Anwaerter: ${pruefling}
+Daten:
+Anwärter: ${pruefling}
 Thema: ${thema}
-
-Werte (1-5):
-- Einleitung: ${durchschnitte.einleitung?.toFixed(2) ?? 'N/A'}
-- Didaktik: ${durchschnitte.didaktik?.toFixed(2) ?? 'N/A'}
-- Sicherheit: ${durchschnitte.sicherheit?.toFixed(2) ?? 'N/A'}
-- Kommunikation: ${durchschnitte.kommunikation?.toFixed(2) ?? 'N/A'}
-- Abschluss: ${durchschnitte.abschluss?.toFixed(2) ?? 'N/A'}
+Einleitung: ${durchschnitte.einleitung?.toFixed(2) ?? 'N/A'}
+Didaktik: ${durchschnitte.didaktik?.toFixed(2) ?? 'N/A'}
+Sicherheit: ${durchschnitte.sicherheit?.toFixed(2) ?? 'N/A'}
+Kommunikation: ${durchschnitte.kommunikation?.toFixed(2) ?? 'N/A'}
+Abschluss: ${durchschnitte.abschluss?.toFixed(2) ?? 'N/A'}
 
 Notizen:
 ${kuerzeNotizen(notizen)}`;
@@ -128,7 +116,11 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
               maxOutputTokens: 2048,
               temperature: 0.2,
               responseMimeType: 'application/json',
-            }
+            },
+            // Thinking deaktivieren – verhindert dass Gemini 2.5 Denktext vor JSON einfügt
+            thinkingConfig: {
+              thinkingBudget: 0,
+            },
           }),
         }
       );
@@ -139,23 +131,23 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
       }
 
       const data = await response.json();
+
+      // Rohantwort loggen für Debugging
+      console.log('[KI-Analyse] Rohantwort:', JSON.stringify(data, null, 2));
+
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) throw new Error('Keine Antwort vom Modell erhalten.');
 
-      const clean = text
-        .replace(/^```json\s*/i, '')
-        .replace(/^```\s*/i, '')
-        .replace(/\s*```$/i, '')
-        .trim();
-
-      let parsed;
-      try {
-        parsed = JSON.parse(clean);
-      } catch {
-        const match = clean.match(/\{[\s\S]*\}/);
-        if (!match) throw new Error('Antwort enthält kein gültiges JSON.');
-        parsed = JSON.parse(match[0]);
+      // Aggressives Bereinigen: alles vor { und nach } entfernen
+      const jsonStart = text.indexOf('{');
+      const jsonEnd = text.lastIndexOf('}');
+      if (jsonStart === -1 || jsonEnd === -1) {
+        console.error('[KI-Analyse] Rohtext:', text);
+        throw new Error('Antwort enthält kein gültiges JSON.');
       }
+
+      const clean = text.slice(jsonStart, jsonEnd + 1);
+      const parsed = JSON.parse(clean);
 
       if (!parsed.gesamteindruck || !Array.isArray(parsed.bereiche)) {
         throw new Error('Unerwartetes Antwortformat. Bitte erneut versuchen.');
@@ -164,7 +156,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
       setAnalyse(parsed);
 
     } catch (e) {
-      console.error('[KI-Analyse]', e);
+      console.error('[KI-Analyse Fehler]', e);
       setError(`Fehler bei der KI-Anfrage: ${e.message}`);
     } finally {
       setIsLoading(false);
