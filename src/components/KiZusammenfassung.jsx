@@ -117,10 +117,6 @@ function KiZusammenfassung({ auswertung, durchschnitte, eintrag }) {
               temperature: 0.2,
               responseMimeType: 'application/json',
             },
-            // Thinking deaktivieren – verhindert Denktext vor JSON
-            thinkingConfig: {
-              thinkingBudget: 0,
-            },
           }),
         }
       );
