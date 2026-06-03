@@ -23,11 +23,12 @@ Das JSON muss exakt diesem Schema folgen:
 
 Regeln:
 - ampel: gruen wenn Wert >= 3.5, gelb wenn >= 2.5, sonst rot
-- Alle Texte kurz und prägnant (max. 15 Wörter pro Feld)
+- Alle Texte kurz und praegnant (max. 15 Woerter pro Feld)
 - Genau 5 Bereiche (einen pro Bewertungsbereich)
+- Keine Sonderzeichen in Textwerten
 
 Daten:
-Anwärter: ${pruefling}
+Anwaerter: ${pruefling}
 Thema: ${thema}
 Einleitung: ${durchschnitte.einleitung_fahrt?.toFixed(2) ?? durchschnitte.einleitung?.toFixed(2) ?? 'N/A'}
 Didaktik: ${durchschnitte.didaktik_fahrt?.toFixed(2) ?? durchschnitte.didaktik?.toFixed(2) ?? 'N/A'}
@@ -37,6 +38,17 @@ Abschluss: ${durchschnitte.abschluss_fahrt?.toFixed(2) ?? durchschnitte.abschlus
 
 Notizen:
 ${kuerzeNotizen(notizen)}`;
+}
+
+// Sucht in allen Parts nach dem JSON-Part (Thinking-Modelle liefern mehrere Parts)
+function extrahiereJsonText(data) {
+  const parts = data?.candidates?.[0]?.content?.parts || [];
+  for (const part of parts) {
+    if (part.text && part.text.includes('{') && part.text.includes('}')) {
+      return part.text;
+    }
+  }
+  return null;
 }
 
 const AMPEL_CONFIG = {
@@ -105,6 +117,8 @@ function KiZusammenfassung({ auswertung, durchschnitte, eintrag }) {
     try {
       const prompt = erstellePrompt(durchschnitte, auswertung.notizen || {}, eintrag);
 
+      // gemini-2.5-flash: thinkingConfig muss in generationConfig liegen
+      // thinkingBudget:0 deaktiviert Thinking und verhindert gekürzten Output
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
@@ -116,10 +130,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, eintrag }) {
               maxOutputTokens: 2048,
               temperature: 0.2,
               responseMimeType: 'application/json',
-              // Thinking deaktivieren – muss in generationConfig liegen, nicht daneben
-              thinkingConfig: {
-                thinkingBudget: 0,
-              },
+              thinkingConfig: { thinkingBudget: 0 },
             },
           }),
         }
@@ -132,19 +143,15 @@ function KiZusammenfassung({ auswertung, durchschnitte, eintrag }) {
 
       const data = await response.json();
 
-      console.log('[KI-Analyse] Rohantwort:', JSON.stringify(data, null, 2));
-
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error('Keine Antwort vom Modell erhalten.');
-
-      // Aggressives Bereinigen: alles vor { und nach } entfernen
-      const jsonStart = text.indexOf('{');
-      const jsonEnd = text.lastIndexOf('}');
-      if (jsonStart === -1 || jsonEnd === -1) {
-        console.error('[KI-Analyse] Rohtext:', text);
-        throw new Error('Antwort enthält kein gültiges JSON.');
+      // Alle Parts durchsuchen – nicht blind parts[0] nehmen
+      const text = extrahiereJsonText(data);
+      if (!text) {
+        throw new Error('Keine Antwort vom Modell erhalten.');
       }
 
+      // Alles vor dem ersten { und nach dem letzten } abschneiden
+      const jsonStart = text.indexOf('{');
+      const jsonEnd = text.lastIndexOf('}');
       const clean = text.slice(jsonStart, jsonEnd + 1);
       const parsed = JSON.parse(clean);
 
