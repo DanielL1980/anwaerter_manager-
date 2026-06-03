@@ -116,6 +116,10 @@ function KiZusammenfassung({ auswertung, durchschnitte, eintrag }) {
               maxOutputTokens: 2048,
               temperature: 0.2,
               responseMimeType: 'application/json',
+              // Thinking deaktivieren – muss in generationConfig liegen, nicht daneben
+              thinkingConfig: {
+                thinkingBudget: 0,
+              },
             },
           }),
         }
