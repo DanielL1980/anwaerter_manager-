@@ -118,7 +118,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
       const prompt = erstellePrompt(durchschnitte, auswertung.notizen || {}, lehrprobe);
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -142,14 +142,16 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!text) throw new Error('Keine Antwort vom Modell erhalten.');
 
-      // Markdown-Fences entfernen falls vorhanden
-      const clean = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+      const clean = text
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim();
 
       let parsed;
       try {
         parsed = JSON.parse(clean);
       } catch {
-        // Fallback: JSON-Block aus Text extrahieren
         const match = clean.match(/\{[\s\S]*\}/);
         if (!match) throw new Error('Antwort enthält kein gültiges JSON.');
         parsed = JSON.parse(match[0]);
