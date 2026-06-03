@@ -6,7 +6,7 @@ import Layout from './components/Layout';
 import Start from './pages/Start';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
-import LehrprobeDetail from './pages/LehrprobeDetail';
+import AuswertungDetail from './pages/LehrprobeDetail';
 import AnwaerterProfil from './pages/AnwaerterProfil';
 import Einstellungen from './pages/Einstellungen';
 import Login from './components/Login';
@@ -43,7 +43,7 @@ function App() {
           <Route index element={<Start />} />
           <Route path="/anwaerter" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/lehrprobe/:id" element={<LehrprobeDetail />} />
+          <Route path="/auswertung/:id" element={<AuswertungDetail />} />
           <Route path="/anwaerter/:name" element={<AnwaerterProfil />} />
           <Route path="/einstellungen" element={<Einstellungen />} />
           <Route path="/bewerber" element={<BewerberHome />} />

@@ -166,7 +166,7 @@ function Karte({ pins, onPinLoeschen, onSeiteOeffnen }) {
 }
 
 // =================== HAUPTKOMPONENTE ===================
-function FahrtNotizblock({ lehrprobeId }) {
+function FahrtNotizblock({ eintragId: lehrprobeId }) {
   const [ansicht, setAnsicht] = useState('notiz');
   const [aktiverPin, setAktiverPin] = useState(null); // { id, nummer, zeit, seiteIndex }
   const [gpsLaedt, setGpsLaedt] = useState(false);

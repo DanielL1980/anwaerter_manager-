@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getLehrproben, getAuswertungenForLehrprobe } from '../lib/db';
+import { getAuswertungseintraege, getAuswertungenFuerEintrag } from '../lib/db';
 import { berechneKategorieDurchschnitte } from '../lib/berechnungen';
 import { BEWERTUNGSKRITERIEN } from '../data/kriterien';
 import { format } from 'date-fns';
@@ -40,29 +40,29 @@ function Dashboard() {
 
   useEffect(() => {
     const ladeDaten = async () => {
-      const lehrproben = await getLehrproben();
-      if (lehrproben.length === 0) { setDaten({ leer: true }); setLoading(false); return; }
+      const eintraege = await getAuswertungseintraege();
+      if (eintraege.length === 0) { setDaten({ leer: true }); setLoading(false); return; }
 
-      // Auswertungen für alle Lehrproben laden
-      const auswertungenMitProbe = await Promise.all(
-        lehrproben.map(async (probe) => {
-          const auswertungen = await getAuswertungenForLehrprobe(probe.id);
+      // Auswertungen für alle Einträge laden
+      const auswertungenMitEintrag = await Promise.all(
+        eintraege.map(async (eintrag) => {
+          const auswertungen = await getAuswertungenFuerEintrag(eintrag.id);
           const auswertung = auswertungen[0];
           const durchschnitte = auswertung ? berechneKategorieDurchschnitte(auswertung) : null;
           const gesamt = durchschnitte
             ? parseFloat((Object.values(durchschnitte).filter(Boolean).reduce((a, b) => a + b, 0) /
                 Object.values(durchschnitte).filter(Boolean).length).toFixed(2))
             : null;
-          return { probe, durchschnitte, gesamt };
+          return { eintrag, durchschnitte, gesamt };
         })
       );
 
-      // Gesamtdurchschnitte je Kompetenz über alle Lehrproben
+      // Gesamtdurchschnitte je Kompetenz über alle Einträge (Theorie)
       const kompetenzSummen = {};
       const kompetenzAnzahl = {};
       BEWERTUNGSKRITERIEN.forEach(k => { kompetenzSummen[k.id] = 0; kompetenzAnzahl[k.id] = 0; });
 
-      auswertungenMitProbe.forEach(({ durchschnitte }) => {
+      auswertungenMitEintrag.forEach(({ durchschnitte }) => {
         if (!durchschnitte) return;
         BEWERTUNGSKRITERIEN.forEach(k => {
           if (durchschnitte[k.id]) {
@@ -85,14 +85,14 @@ function Dashboard() {
       const schlechteste = sorted[sorted.length - 1];
 
       // Rangliste
-      const rangliste = auswertungenMitProbe
+      const rangliste = auswertungenMitEintrag
         .filter(d => d.gesamt !== null)
         .sort((a, b) => b.gesamt - a.gesamt);
 
-      // Zeitstrahl – letzte 5 Lehrproben
-      const zeitstrahl = [...lehrproben].reverse().slice(0, 5);
+      // Zeitstrahl – letzte 5 Einträge
+      const zeitstrahl = [...eintraege].reverse().slice(0, 5);
 
-      setDaten({ lehrproben, kompetenzDurchschnitte, beste, schlechteste, rangliste, zeitstrahl });
+      setDaten({ eintraege, kompetenzDurchschnitte, beste, schlechteste, rangliste, zeitstrahl });
       setLoading(false);
     };
     ladeDaten();
@@ -123,7 +123,7 @@ function Dashboard() {
           <div className="bg-indigo-100 rounded-xl p-2.5 w-fit mb-3">
             <ClipboardList size={20} className="text-indigo-600" />
           </div>
-          <p className="text-2xl font-bold text-slate-900">{daten.lehrproben.length}</p>
+          <p className="text-2xl font-bold text-slate-900">{daten.eintraege.length}</p>
           <p className="text-sm text-slate-500 mt-0.5">Auswertungen</p>
         </div>
         <div className="card p-5">
@@ -170,21 +170,21 @@ function Dashboard() {
             <Award size={18} className="text-amber-500" /> Rangliste
           </h3>
           <div className="space-y-2">
-            {daten.rangliste.map(({ probe, gesamt }, index) => {
+            {daten.rangliste.map(({ eintrag, gesamt }, index) => {
               const farben = getFarbe(gesamt);
               const medalColors = ['text-amber-500', 'text-slate-400', 'text-amber-700'];
               return (
-                <Link key={probe.id} to={`/lehrprobe/${probe.id}`}
+                <Link key={eintrag.id} to={`/auswertung/${eintrag.id}`}
                   className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition group">
                   <span className={`text-lg font-bold w-6 text-center ${medalColors[index] || 'text-slate-400'}`}>
                     {index + 1}
                   </span>
-                  <div className={`bg-gradient-to-br ${getAvatarColor(probe.prüfling)} rounded-xl w-9 h-9 flex items-center justify-center flex-shrink-0`}>
-                    <span className="text-white font-bold text-xs">{getInitials(probe.prüfling)}</span>
+                  <div className={`bg-gradient-to-br ${getAvatarColor(eintrag.prüfling)} rounded-xl w-9 h-9 flex items-center justify-center flex-shrink-0`}>
+                    <span className="text-white font-bold text-xs">{getInitials(eintrag.prüfling)}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-800 text-sm truncate">{probe.prüfling}</p>
-                    <p className="text-xs text-slate-400 truncate">{probe.thema}</p>
+                    <p className="font-semibold text-slate-800 text-sm truncate">{eintrag.prüfling}</p>
+                    <p className="text-xs text-slate-400 truncate">{eintrag.thema}</p>
                   </div>
                   <span className={`text-sm font-bold px-2 py-0.5 rounded-lg ${farben.bg} ${farben.text}`}>
                     {gesamt}
@@ -201,20 +201,20 @@ function Dashboard() {
             <Calendar size={18} className="text-indigo-500" /> Letzte Aktivitäten
           </h3>
           <div className="space-y-1">
-            {daten.zeitstrahl.map((probe, index) => (
-              <Link key={probe.id} to={`/lehrprobe/${probe.id}`}
+            {daten.zeitstrahl.map((eintrag, index) => (
+              <Link key={eintrag.id} to={`/auswertung/${eintrag.id}`}
                 className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 transition group">
                 <div className="flex flex-col items-center">
                   <div className={`w-3 h-3 rounded-full ${index === 0 ? 'bg-indigo-500' : 'bg-slate-300'}`} />
                   {index < daten.zeitstrahl.length - 1 && <div className="w-0.5 h-6 bg-slate-200 mt-0.5" />}
                 </div>
                 <div className="flex-1 min-w-0 pb-1">
-                  <p className="font-semibold text-slate-800 text-sm truncate">{probe.prüfling}</p>
-                  <p className="text-xs text-slate-400 truncate">{probe.thema}</p>
+                  <p className="font-semibold text-slate-800 text-sm truncate">{eintrag.prüfling}</p>
+                  <p className="text-xs text-slate-400 truncate">{eintrag.thema}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="text-xs font-medium text-slate-600">
-                    {format(new Date(probe.datum), 'dd. MMM', { locale: de })}
+                    {format(new Date(eintrag.datum), 'dd. MMM', { locale: de })}
                   </p>
                   <ChevronRight size={14} className="text-slate-300 group-hover:text-indigo-500 ml-auto mt-0.5 transition" />
                 </div>

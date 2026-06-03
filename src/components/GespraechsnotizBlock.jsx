@@ -1,29 +1,30 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getGespraechsnotizForLehrprobe, saveGespraechsnotiz } from '../lib/db';
+import { getGespraechsnotizFuerEintrag, saveGespraechsnotiz } from '../lib/db';
 import { MessageSquare, CheckCircle } from 'lucide-react';
 import { debounce } from '../lib/utils';
 
-function GespraechsnotizBlock({ lehrprobeId }) {
+function GespraechsnotizBlock({ eintragId }) {
   const [text, setText] = useState('');
   const [gespeichert, setGespeichert] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const laden = async () => {
-      const notiz = await getGespraechsnotizForLehrprobe(lehrprobeId);
-      if (notiz) setText(notiz.text);
+      const notiz = await getGespraechsnotizFuerEintrag(eintragId);
+      // Gesprächsnotizen werden als {tastaturText, stiftData} gespeichert
+      if (notiz) setText(notiz.tastaturText || '');
       setLoading(false);
     };
     laden();
-  }, [lehrprobeId]);
+  }, [eintragId]);
 
   const debouncedSave = useCallback(
     debounce(async (value) => {
-      await saveGespraechsnotiz(lehrprobeId, value);
+      await saveGespraechsnotiz(eintragId, { tastaturText: value, stiftData: null });
       setGespeichert(true);
       setTimeout(() => setGespeichert(false), 2000);
     }, 600),
-    [lehrprobeId]
+    [eintragId]
   );
 
   const handleChange = (e) => {

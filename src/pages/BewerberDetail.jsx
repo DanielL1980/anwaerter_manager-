@@ -236,7 +236,7 @@ function BewerberDetail() {
 
       <BewerberKartenpins pruefungId={pruefung.id} />
 
-      <Stoppuhr lehrprobeId={pruefung.id} probe={stoppuhrProbe}
+      <Stoppuhr eintragId={pruefung.id} probe={stoppuhrProbe}
         onZeitGespeichert={(von, bis) => {
           const neu = { ...pruefung, zeitTatsaechlichVon: von, zeitTatsaechlichBis: bis };
           setPruefung(neu);

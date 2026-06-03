@@ -10,9 +10,9 @@ function kuerzeNotizen(notizen) {
   return eintraege.join('\n');
 }
 
-function erstellePrompt(durchschnitte, notizen, lehrprobe) {
-  const pruefling = lehrprobe?.prüfling || lehrprobe?.pruefling || lehrprobe?.name || 'Unbekannt';
-  const thema = lehrprobe?.thema || 'Unbekannt';
+function erstellePrompt(durchschnitte, notizen, eintrag) {
+  const pruefling = eintrag?.prüfling || eintrag?.pruefling || eintrag?.name || 'Unbekannt';
+  const thema = eintrag?.thema || 'Unbekannt';
 
   return `Du bist ein erfahrener Ausbildungsfahrlehrer der Bundeswehr.
 
@@ -29,11 +29,11 @@ Regeln:
 Daten:
 Anwärter: ${pruefling}
 Thema: ${thema}
-Einleitung: ${durchschnitte.einleitung?.toFixed(2) ?? 'N/A'}
-Didaktik: ${durchschnitte.didaktik?.toFixed(2) ?? 'N/A'}
+Einleitung: ${durchschnitte.einleitung_fahrt?.toFixed(2) ?? durchschnitte.einleitung?.toFixed(2) ?? 'N/A'}
+Didaktik: ${durchschnitte.didaktik_fahrt?.toFixed(2) ?? durchschnitte.didaktik?.toFixed(2) ?? 'N/A'}
 Sicherheit: ${durchschnitte.sicherheit?.toFixed(2) ?? 'N/A'}
-Kommunikation: ${durchschnitte.kommunikation?.toFixed(2) ?? 'N/A'}
-Abschluss: ${durchschnitte.abschluss?.toFixed(2) ?? 'N/A'}
+Kommunikation: ${durchschnitte.kommunikation_fahrt?.toFixed(2) ?? durchschnitte.kommunikation?.toFixed(2) ?? 'N/A'}
+Abschluss: ${durchschnitte.abschluss_fahrt?.toFixed(2) ?? durchschnitte.abschluss?.toFixed(2) ?? 'N/A'}
 
 Notizen:
 ${kuerzeNotizen(notizen)}`;
@@ -85,7 +85,7 @@ function BereichKarte({ bereich }) {
   );
 }
 
-function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
+function KiZusammenfassung({ auswertung, durchschnitte, eintrag }) {
   const [analyse, setAnalyse] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -103,7 +103,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
     }
 
     try {
-      const prompt = erstellePrompt(durchschnitte, auswertung.notizen || {}, lehrprobe);
+      const prompt = erstellePrompt(durchschnitte, auswertung.notizen || {}, eintrag);
 
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -117,7 +117,7 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
               temperature: 0.2,
               responseMimeType: 'application/json',
             },
-            // Thinking deaktivieren – verhindert dass Gemini 2.5 Denktext vor JSON einfügt
+            // Thinking deaktivieren – verhindert Denktext vor JSON
             thinkingConfig: {
               thinkingBudget: 0,
             },
@@ -132,7 +132,6 @@ function KiZusammenfassung({ auswertung, durchschnitte, lehrprobe }) {
 
       const data = await response.json();
 
-      // Rohantwort loggen für Debugging
       console.log('[KI-Analyse] Rohantwort:', JSON.stringify(data, null, 2));
 
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;

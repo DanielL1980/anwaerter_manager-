@@ -3,7 +3,7 @@ import { X, Plus, Trash2, ChevronLeft, ChevronRight, Download, BookOpen } from '
 
 import Zeichenflaeche from './Zeichenflaeche';
 
-function TheorieNotizblock({ lehrprobeId }) {
+function TheorieNotizblock({ eintragId: lehrprobeId }) {
   const [offen, setOffen] = useState(false);
   const [aktuelleSeite, setAktuelleSeite] = useState(0);
   const [seiten, setSeiten] = useState(() => {

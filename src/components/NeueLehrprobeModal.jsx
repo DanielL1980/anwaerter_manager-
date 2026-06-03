@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { addLehrprobe } from '../lib/db';
+import { addAuswertungseintrag } from '../lib/db';
 import { X, User, BookOpen, Calendar, Car, GraduationCap, Clock } from 'lucide-react';
 import VorlagenAuswahl from './VorlagenAuswahl';
 import { format } from 'date-fns';
 
-function NeueLehrprobeModal({ isOpen, onClose, onLehrprobeAdded }) {
+function NeueAuswertungModal({ isOpen, onClose, onHinzugefuegt }) {
   const [typ, setTyp] = useState('theorie');
   const [prüfling, setPrüfling] = useState('');
   const [thema, setThema] = useState('');
@@ -37,7 +37,7 @@ function NeueLehrprobeModal({ isOpen, onClose, onLehrprobeAdded }) {
       setError('Bitte Name, Thema und Datum ausfüllen.');
       return;
     }
-    const neueLehrprobe = {
+    const neueAuswertung = {
       id: crypto.randomUUID(),
       typ,
       prüfling,
@@ -51,8 +51,8 @@ function NeueLehrprobeModal({ isOpen, onClose, onLehrprobeAdded }) {
       stufe,
       erstelltAm: new Date().toISOString(),
     };
-    await addLehrprobe(neueLehrprobe);
-    onLehrprobeAdded();
+    await addAuswertungseintrag(neueAuswertung);
+    onHinzugefuegt();
     handleClose();
   };
 
@@ -196,4 +196,4 @@ function NeueLehrprobeModal({ isOpen, onClose, onLehrprobeAdded }) {
   );
 }
 
-export default NeueLehrprobeModal;
+export default NeueAuswertungModal;

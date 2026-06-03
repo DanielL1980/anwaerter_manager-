@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Share2, X, Copy, Check, Clock, Printer, Link } from 'lucide-react';
-import { erstelleEinladungslink, getAuswertungenForLehrprobe } from '../lib/db';
+import { erstelleEinladungslink, getAuswertungenFuerEintrag } from '../lib/db';
 import { erstelleDruckHTML } from './DruckAnsicht';
 import { berechneKategorieDurchschnitte, berechneGewichteteNote } from '../lib/berechnungen';
 import { KRITERIEN_FAHRSTUNDE, KRITERIEN_THEORIE } from '../data/kriterien';
 
-function AnwaerterTeilen({ lehrprobeId, anwaerterName, probe }) {
+function AnwaerterTeilen({ lehrprobeId: eintragId, anwaerterName, probe }) {
   const [offen, setOffen] = useState(false);
   const [link, setLink] = useState('');
   const [laedt, setLaedt] = useState(false);
@@ -15,15 +15,15 @@ function AnwaerterTeilen({ lehrprobeId, anwaerterName, probe }) {
 
   useEffect(() => {
     if (probe) {
-      getAuswertungenForLehrprobe(lehrprobeId).then(a => setAuswertung(a[0] || null));
+      getAuswertungenFuerEintrag(eintragId).then(a => setAuswertung(a[0] || null));
     }
-  }, [lehrprobeId]);
+  }, [eintragId]);
 
   const handleLinkErstellen = async () => {
     setLaedt(true);
     setFehler('');
     try {
-      const url = await erstelleEinladungslink(lehrprobeId);
+      const url = await erstelleEinladungslink(eintragId);
       setLink(url);
     } catch (e) {
       setFehler('Fehler beim Erstellen des Links: ' + e.message);

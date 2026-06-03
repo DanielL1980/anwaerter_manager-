@@ -2,14 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getEinstellung, setEinstellung, exportiereAllesDaten, importiereDaten } from '../lib/db';
 import { Save, Eye, EyeOff, Key, CheckCircle, Download, Upload, AlertTriangle, Database, Share2, ChevronDown } from 'lucide-react';
-import { getEinstellung as getEin, setEinstellung as setEin } from '../lib/db';
 
 
 function EmailEinstellung() {
   const [email, setEmail] = useState('');
   const [saved, setSaved] = useState(false);
-  useEffect(() => { getEin('emailAdresse').then(v => v && setEmail(v)); }, []);
-  const save = async () => { await setEin('emailAdresse', email); setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  useEffect(() => { getEinstellung('emailAdresse').then(v => v && setEmail(v)); }, []);
+  const save = async () => { await setEinstellung('emailAdresse', email); setSaved(true); setTimeout(() => setSaved(false), 2000); };
   return (
     <div className="flex gap-2">
       <input type="email" value={email} onChange={e => setEmail(e.target.value)}
@@ -25,9 +24,9 @@ function CloudEinstellung({ titel, emoji, clientIdKey, tokenKey, anleitung }) {
   const [clientId, setClientId] = useState('');
   const [anleitungOffen, setAnleitungOffen] = useState(false);
   const [saved, setSaved] = useState(false);
-  useEffect(() => { getEin(clientIdKey).then(v => v && setClientId(v)); }, [clientIdKey]);
-  const save = async () => { await setEin(clientIdKey, clientId); setSaved(true); setTimeout(() => setSaved(false), 2000); };
-  const reset = async () => { await setEin(tokenKey, ''); alert('Token zurückgesetzt. Beim nächsten Teilen erneut anmelden.'); };
+  useEffect(() => { getEinstellung(clientIdKey).then(v => v && setClientId(v)); }, [clientIdKey]);
+  const save = async () => { await setEinstellung(clientIdKey, clientId); setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  const reset = async () => { await setEinstellung(tokenKey, ''); alert('Token zurückgesetzt. Beim nächsten Teilen erneut anmelden.'); };
   return (
     <div>
       <h4 className="font-semibold text-slate-700 mb-1">{emoji} {titel}</h4>
@@ -194,7 +193,7 @@ function Einstellungen() {
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
             <AlertTriangle size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-amber-800">
-              Alle Daten werden nur lokal in deinem Browser gespeichert. Erstelle regelmäßig ein Backup, damit keine Daten verloren gehen!
+              Deine Daten werden in der Firebase-Cloud gespeichert. Ein regelmäßiges Backup schützt vor versehentlichem Löschen oder Zugriffsproblemen.
             </p>
           </div>
 

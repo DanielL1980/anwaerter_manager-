@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { getLehrprobe, deleteLehrprobe } from '../lib/db';
+import { getAuswertungseintrag, deleteAuswertungseintrag } from '../lib/db';
 import Auswertebogen from '../components/Auswertebogen';
 import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import GespraechsnotizBlock from '../components/GespraechsnotizBlock';
@@ -31,34 +31,34 @@ function getAvatarColor(name) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-function LehrprobeDetail() {
+function AuswertungDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [probe, setProbe] = useState(null);
+  const [eintrag, setEintrag] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
-    const fetchProbe = async () => {
+    const laden = async () => {
       setLoading(true);
-      const data = await getLehrprobe(id);
-      setProbe(data);
+      const data = await getAuswertungseintrag(id);
+      setEintrag(data);
       setLoading(false);
     };
-    fetchProbe();
+    laden();
   }, [id]);
 
   if (loading) return <div className="text-center p-12 text-slate-500">Lade Auswertebogen...</div>;
-  if (!probe) return (
+  if (!eintrag) return (
     <div className="text-center p-12">
       <h2 className="text-xl font-bold mb-4">Auswertung nicht gefunden</h2>
       <Link to="/" className="text-indigo-600 hover:underline">Zurück zur Übersicht</Link>
     </div>
   );
 
-  const farbe = getAvatarColor(probe.prüfling);
-  const initialen = getInitials(probe.prüfling);
-  const istFahrstunde = probe.typ === 'fahrstunde';
+  const farbe = getAvatarColor(eintrag.prüfling);
+  const initialen = getInitials(eintrag.prüfling);
+  const istFahrstunde = eintrag.typ === 'fahrstunde';
   const titelTyp = istFahrstunde ? 'Auswertebogen Fahrstunden' : 'Auswertebogen Theoretischer Unterricht';
 
   return (
@@ -66,7 +66,7 @@ function LehrprobeDetail() {
       <div className="flex justify-between items-center mb-6 no-print">
         <Link to="/" className="btn btn-secondary"><ChevronLeft size={18} /><span>Übersicht</span></Link>
         <div className="flex gap-2">
-          <Teilen probe={probe} />
+          <Teilen probe={eintrag} />
           <button onClick={() => setIsDeleteModalOpen(true)} className="btn bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 focus:ring-red-400 shadow-sm">
             <Trash2 size={18} />
           </button>
@@ -84,49 +84,49 @@ function LehrprobeDetail() {
                 {istFahrstunde ? <Car size={16} className="text-blue-200" /> : <GraduationCap size={16} className="text-indigo-200" />}
                 <span className="text-white/70 text-sm font-medium">{titelTyp}</span>
               </div>
-              <h1 className="text-2xl font-bold">{probe.thema}</h1>
-              <Link to={`/anwaerter/${encodeURIComponent(probe.prüfling)}`}
+              <h1 className="text-2xl font-bold">{eintrag.thema}</h1>
+              <Link to={`/anwaerter/${encodeURIComponent(eintrag.prüfling)}`}
                 className="text-white/70 mt-0.5 flex items-center gap-1.5 hover:text-white transition no-print text-sm">
-                <User size={14} /> {probe.prüfling} – Profil ansehen →
+                <User size={14} /> {eintrag.prüfling} – Profil ansehen →
               </Link>
             </div>
           </div>
         </div>
         <div className={`px-6 py-3 ${istFahrstunde ? 'bg-blue-50 border-blue-100' : 'bg-indigo-50 border-indigo-100'} border-t flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium ${istFahrstunde ? 'text-blue-700' : 'text-indigo-700'}`}>
-          <span className="flex items-center gap-1.5"><Calendar size={14} />{format(new Date(probe.datum), 'EEEE, dd. MMMM yyyy', { locale: de })}</span>
-          {probe.zeitVon && probe.zeitBis && (
-            <span>🕐 Geplant: {probe.zeitVon}–{probe.zeitBis} Uhr ({(parseInt(probe.zeitBis.split(':')[0])*60+parseInt(probe.zeitBis.split(':')[1]))-(parseInt(probe.zeitVon.split(':')[0])*60+parseInt(probe.zeitVon.split(':')[1]))} Min.)</span>
+          <span className="flex items-center gap-1.5"><Calendar size={14} />{format(new Date(eintrag.datum), 'EEEE, dd. MMMM yyyy', { locale: de })}</span>
+          {eintrag.zeitVon && eintrag.zeitBis && (
+            <span>🕐 Geplant: {eintrag.zeitVon}–{eintrag.zeitBis} Uhr ({(parseInt(eintrag.zeitBis.split(':')[0])*60+parseInt(eintrag.zeitBis.split(':')[1]))-(parseInt(eintrag.zeitVon.split(':')[0])*60+parseInt(eintrag.zeitVon.split(':')[1]))} Min.)</span>
           )}
-          {probe.zeitTatsaechlichVon && probe.zeitTatsaechlichBis && (
-            <span>⏱ Tatsächlich: {probe.zeitTatsaechlichVon}–{probe.zeitTatsaechlichBis} Uhr</span>
+          {eintrag.zeitTatsaechlichVon && eintrag.zeitTatsaechlichBis && (
+            <span>⏱ Tatsächlich: {eintrag.zeitTatsaechlichVon}–{eintrag.zeitTatsaechlichBis} Uhr</span>
           )}
-          {probe.ausbildungswoche && <span>· Woche {probe.ausbildungswoche}</span>}
-          {probe.ausbildungsstunde && <span>· Stunde {probe.ausbildungsstunde}</span>}
+          {eintrag.ausbildungswoche && <span>· Woche {eintrag.ausbildungswoche}</span>}
+          {eintrag.ausbildungsstunde && <span>· Stunde {eintrag.ausbildungsstunde}</span>}
         </div>
       </div>
 
-      <Auswertebogen lehrprobeId={probe.id} lehrprobe={probe} />
+      <Auswertebogen eintragId={eintrag.id} eintrag={eintrag} />
 
       <div className="mt-6 space-y-6">
-        <GesetzesLinks thema={probe.thema} />
-        {istFahrstunde && <FahrtNotizblock lehrprobeId={probe.id} />}
-        <GespraechsnotizBlock lehrprobeId={probe.id} />
+        <GesetzesLinks thema={eintrag.thema} />
+        {istFahrstunde && <FahrtNotizblock eintragId={eintrag.id} />}
+        <GespraechsnotizBlock eintragId={eintrag.id} />
       </div>
 
-      {!istFahrstunde && <TheorieNotizblock lehrprobeId={probe.id} />}
+      {!istFahrstunde && <TheorieNotizblock eintragId={eintrag.id} />}
 
-      <GlobaleNotiz lehrprobeId={probe.id} />
+      <GlobaleNotiz eintragId={eintrag.id} />
 
-      <Stoppuhr lehrprobeId={probe.id} probe={probe} />
+      <Stoppuhr eintragId={eintrag.id} probe={eintrag} />
 
       <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={async () => { await deleteLehrprobe(id); navigate('/'); }}
-        itemName={probe.prüfling}
+        onConfirm={async () => { await deleteAuswertungseintrag(id); navigate('/'); }}
+        itemName={eintrag.prüfling}
       />
     </div>
   );
 }
 
-export default LehrprobeDetail;
+export default AuswertungDetail;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Timer, Play, Square, X, Clock } from 'lucide-react';
-import { getLehrprobe, updateLehrprobe } from '../lib/db';
+import { getAuswertungseintrag, updateAuswertungseintrag } from '../lib/db';
 
 function zeitDifferenzMinuten(von, bis) {
   if (!von || !bis) return null;
@@ -51,16 +51,17 @@ function DifferenzAnzeige({ geplantVon, geplantBis, tatsaechlichVon, tatsaechlic
   );
 }
 
-function Stoppuhr({ lehrprobeId, probe, onZeitGespeichert }) {
+// eintragId: ID des Auswertungseintrags
+// onZeitGespeichert: optionaler Callback für externe Speicherung (z.B. Bewerber)
+function Stoppuhr({ eintragId, probe, onZeitGespeichert }) {
   const [offen, setOffen] = useState(false);
   const [laeuft, setLaeuft] = useState(false);
   const [startzeit, setStartzeit] = useState(null);
   const [endzeit, setEndzeit] = useState(null);
-  const [vergangen, setVergangen] = useState(0); // Sekunden
+  const [vergangen, setVergangen] = useState(0);
   const [gespeichert, setGespeichert] = useState(false);
   const intervalRef = useRef(null);
 
-  // Gespeicherte Stoppuhr-Daten laden
   const [tatsaechlichVon, setTatsaechlichVon] = useState(probe?.zeitTatsaechlichVon || '');
   const [tatsaechlichBis, setTatsaechlichBis] = useState(probe?.zeitTatsaechlichBis || '');
 
@@ -94,17 +95,23 @@ function Stoppuhr({ lehrprobeId, probe, onZeitGespeichert }) {
     const zeitStr = formatZeit(jetzt);
     setTatsaechlichBis(zeitStr);
 
-    // In Datenbank speichern
-    try {
-      const aktuelleProbe = await getLehrprobe(lehrprobeId);
-      await updateLehrprobe({
-        ...aktuelleProbe,
-        zeitTatsaechlichVon: tatsaechlichVon,
-        zeitTatsaechlichBis: zeitStr,
-      });
+    if (onZeitGespeichert) {
+      // Externer Callback – z.B. für Bewerber-Prüfungen
+      onZeitGespeichert(tatsaechlichVon, zeitStr);
       setGespeichert(true);
-    } catch (e) {
-      console.error(e);
+    } else {
+      // Direkte Speicherung für Anwärter-Auswertungen
+      try {
+        const aktuellerEintrag = await getAuswertungseintrag(eintragId);
+        await updateAuswertungseintrag({
+          ...aktuellerEintrag,
+          zeitTatsaechlichVon: tatsaechlichVon,
+          zeitTatsaechlichBis: zeitStr,
+        });
+        setGespeichert(true);
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 

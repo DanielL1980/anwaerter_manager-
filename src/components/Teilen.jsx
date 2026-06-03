@@ -6,7 +6,7 @@ import {
   getOrdnerZugaenge,
   updateOrdnerZugang,
   deleteOrdnerZugang,
-  getAuswertungenForLehrprobe,
+  getAuswertungenFuerEintrag,
   getEinstellung,
   setEinstellung
 } from '../lib/db';
@@ -31,7 +31,7 @@ async function uploadGoogleDrive(htmlContent, dateiname, accessToken) {
 }
 
 async function uploadOneDrive(htmlContent, dateiname, accessToken) {
-  const res = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/LehrprobeAuswertungen/${dateiname}:/content`, {
+  const res = await fetch(`https://graph.microsoft.com/v1.0/me/drive/root:/MKLAuswertungen/${dateiname}:/content`, {
     method: 'PUT',
     headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'text/html' },
     body: htmlContent,
@@ -47,12 +47,12 @@ async function uploadDropbox(htmlContent, dateiname, accessToken) {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/octet-stream',
-      'Dropbox-API-Arg': JSON.stringify({ path: `/LehrprobeAuswertungen/${dateiname}`, mode: 'overwrite' }),
+      'Dropbox-API-Arg': JSON.stringify({ path: `/MKLAuswertungen/${dateiname}`, mode: 'overwrite' }),
     },
     body: htmlContent,
   });
   if (!res.ok) throw new Error(`Dropbox Fehler: ${res.status}`);
-  return 'https://www.dropbox.com/home/LehrprobeAuswertungen';
+  return 'https://www.dropbox.com/home/MKLAuswertungen';
 }
 
 const OAUTH_CONFIG = {
@@ -90,7 +90,7 @@ function Teilen({ probe }) {
   const [zugaengeLaedt, setZugaengeLaedt] = useState(false);
 
   useEffect(() => {
-    getAuswertungenForLehrprobe(probe.id).then(a => setAuswertung(a[0] || null));
+    getAuswertungenFuerEintrag(probe.id).then(a => setAuswertung(a[0] || null));
   }, [probe.id]);
 
   const oeffnen = () => {

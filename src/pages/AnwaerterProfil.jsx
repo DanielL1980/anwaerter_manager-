@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getLehrproben, getAuswertungenForLehrprobe } from '../lib/db';
+import { getAuswertungseintraege, getAuswertungenFuerEintrag } from '../lib/db';
 import { berechneKategorieDurchschnitte, berechneGewichteteNote } from '../lib/berechnungen';
 import { KRITERIEN_THEORIE, KRITERIEN_FAHRSTUNDE } from '../data/kriterien';
 import { format } from 'date-fns';
@@ -59,14 +59,12 @@ function VerlaufsChart({ probenMitDaten }) {
   const pfad = werte.map((v, i) => `${i === 0 ? 'M' : 'L'} ${xPos(i)} ${yPos(v)}`).join(' ');
   const flaeche = `${pfad} L ${xPos(werte.length - 1)} ${padT + chartHoehe} L ${padL} ${padT + chartHoehe} Z`;
 
-  // Y-Achse Beschriftungen
   const yTicks = [1, 2, 3, 4, 5];
 
   return (
     <div className="card p-5">
       <h3 className="font-bold text-slate-800 mb-4">Entwicklung der Gesamtnote</h3>
       <svg viewBox={`0 0 ${breite} ${hoehe}`} className="w-full" style={{ maxHeight: '200px' }}>
-        {/* Gitternetz */}
         {yTicks.filter(t => t >= min && t <= max).map(t => (
           <g key={t}>
             <line x1={padL} y1={yPos(t)} x2={breite - padR} y2={yPos(t)}
@@ -74,8 +72,6 @@ function VerlaufsChart({ probenMitDaten }) {
             <text x={padL - 8} y={yPos(t) + 4} textAnchor="end" fontSize="11" fill="#94a3b8">{t}</text>
           </g>
         ))}
-
-        {/* Fläche unter der Kurve */}
         <path d={flaeche} fill="url(#gradient)" opacity="0.3" />
         <defs>
           <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
@@ -83,17 +79,13 @@ function VerlaufsChart({ probenMitDaten }) {
             <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
           </linearGradient>
         </defs>
-
-        {/* Linie */}
         <path d={pfad} fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* Punkte + Labels */}
         {werte.map((v, i) => (
           <g key={i}>
             <circle cx={xPos(i)} cy={yPos(v)} r="5" fill="#6366f1" stroke="white" strokeWidth="2" />
             <text x={xPos(i)} y={yPos(v) - 10} textAnchor="middle" fontSize="11" fontWeight="bold" fill="#4f46e5">{v}</text>
             <text x={xPos(i)} y={hoehe - 8} textAnchor="middle" fontSize="10" fill="#94a3b8">
-              {format(new Date(auswertbar[i].probe.datum), 'dd.MM.')}
+              {format(new Date(auswertbar[i].eintrag.datum), 'dd.MM.')}
             </text>
           </g>
         ))}
@@ -106,7 +98,6 @@ function KompetenzVerlauf({ probenMitDaten }) {
   const auswertbar = probenMitDaten.filter(p => p.durchschnitte !== null);
   if (auswertbar.length < 2) return null;
 
-  // Sammle alle vorkommenden Kategorien
   const alleKategorien = new Set();
   auswertbar.forEach(p => Object.keys(p.durchschnitte).forEach(k => alleKategorien.add(k)));
 
@@ -144,7 +135,6 @@ function KompetenzVerlauf({ probenMitDaten }) {
             <text x={padL - 8} y={yPos(t) + 4} textAnchor="end" fontSize="11" fill="#94a3b8">{t}</text>
           </g>
         ))}
-
         {kategorienInfo.map((k, ki) => {
           const farbe = FARBEN[ki % FARBEN.length];
           const punkte = auswertbar.map(p => p.durchschnitte[k.id]).filter(Boolean);
@@ -156,10 +146,9 @@ function KompetenzVerlauf({ probenMitDaten }) {
           }).join(' ');
           return <path key={k.id} d={pfad} fill="none" stroke={farbe} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.8" />;
         })}
-
         {auswertbar.map((p, i) => (
           <text key={i} x={xPos(i)} y={hoehe - 8} textAnchor="middle" fontSize="10" fill="#94a3b8">
-            {format(new Date(p.probe.datum), 'dd.MM.')}
+            {format(new Date(p.eintrag.datum), 'dd.MM.')}
           </text>
         ))}
       </svg>
@@ -176,13 +165,13 @@ function AnwaerterProfil() {
 
   useEffect(() => {
     const laden = async () => {
-      const alle = await getLehrproben();
-      const meineProben = alle
+      const alle = await getAuswertungseintraege();
+      const meineEintraege = alle
         .filter(p => p.prüfling === anwaerterName)
         .sort((a, b) => new Date(a.datum) - new Date(b.datum));
 
-      const probenMitDaten = await Promise.all(meineProben.map(async (probe) => {
-        const auswertungen = await getAuswertungenForLehrprobe(probe.id);
+      const eintraegeMitDaten = await Promise.all(meineEintraege.map(async (eintrag) => {
+        const auswertungen = await getAuswertungenFuerEintrag(eintrag.id);
         const auswertung = auswertungen[0];
         const durchschnitte = auswertung ? berechneKategorieDurchschnitte(auswertung) : null;
         const noteErgebnis = auswertung ? berechneGewichteteNote(auswertung) : null;
@@ -190,10 +179,10 @@ function AnwaerterProfil() {
           ? parseFloat((Object.values(durchschnitte).filter(Boolean).reduce((a, b) => a + b, 0) /
               Object.values(durchschnitte).filter(Boolean).length).toFixed(2))
           : null;
-        return { probe, durchschnitte, gesamt, noteErgebnis };
+        return { eintrag, durchschnitte, gesamt, noteErgebnis };
       }));
 
-      setProfilDaten(probenMitDaten);
+      setProfilDaten(eintraegeMitDaten);
       setLoading(false);
     };
     laden();
@@ -209,14 +198,14 @@ function AnwaerterProfil() {
 
   const gefilterteProben = aktuellerTyp === 'alle'
     ? profilDaten
-    : profilDaten.filter(p => (p.probe.typ || 'theorie') === aktuellerTyp);
+    : profilDaten.filter(p => (p.eintrag.typ || 'theorie') === aktuellerTyp);
 
   const letzte = gefilterteProben[gefilterteProben.length - 1];
   const vorletzte = gefilterteProben.length > 1 ? gefilterteProben[gefilterteProben.length - 2] : null;
   const farbe = getAvatarColor(anwaerterName);
 
-  const theorieAnzahl = profilDaten.filter(p => (p.probe.typ || 'theorie') === 'theorie').length;
-  const fahrstundeAnzahl = profilDaten.filter(p => p.probe.typ === 'fahrstunde').length;
+  const theorieAnzahl = profilDaten.filter(p => (p.eintrag.typ || 'theorie') === 'theorie').length;
+  const fahrstundeAnzahl = profilDaten.filter(p => p.eintrag.typ === 'fahrstunde').length;
 
   return (
     <div className="space-y-6">
@@ -311,20 +300,20 @@ function AnwaerterProfil() {
       <div className="card p-5">
         <h3 className="font-bold text-slate-800 mb-4">Alle Auswertungen</h3>
         <div className="space-y-2">
-          {[...gefilterteProben].reverse().map(({ probe, gesamt, noteErgebnis }) => {
+          {[...gefilterteProben].reverse().map(({ eintrag, gesamt, noteErgebnis }) => {
             const farben = getFarbe(gesamt);
-            const istFahrstunde = probe.typ === 'fahrstunde';
+            const istFahrstunde = eintrag.typ === 'fahrstunde';
             return (
-              <Link key={probe.id} to={`/lehrprobe/${probe.id}`}
+              <Link key={eintrag.id} to={`/auswertung/${eintrag.id}`}
                 className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition group">
                 <div className="flex items-center gap-3">
                   <div className={`${istFahrstunde ? 'bg-blue-100' : 'bg-indigo-100'} rounded-lg p-1.5`}>
                     {istFahrstunde ? <Car size={14} className="text-blue-600" /> : <GraduationCap size={14} className="text-indigo-600" />}
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-800 text-sm">{probe.thema}</p>
+                    <p className="font-semibold text-slate-800 text-sm">{eintrag.thema}</p>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      {format(new Date(probe.datum), 'EEEE, dd. MMMM yyyy', { locale: de })}
+                      {format(new Date(eintrag.datum), 'EEEE, dd. MMMM yyyy', { locale: de })}
                     </p>
                   </div>
                 </div>

@@ -14,7 +14,7 @@ function OrdnerTeilen({ anwaerterId, anwaerterName }) {
 
   const ladeZugaenge = async () => {
     try {
-      const z = await getOrdnerZugaenge(anwaenterId);
+      const z = await getOrdnerZugaenge(anwaerterId);
       setZugaenge(z);
     } catch (e) {
       console.error(e);

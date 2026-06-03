@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { KRITERIEN_THEORIE, KRITERIEN_FAHRSTUNDE } from '../data/kriterien';
-import { getAuswertungenForLehrprobe, addAuswertung, updateAuswertung } from '../lib/db';
+import { getAuswertungenFuerEintrag, addAuswertung, updateAuswertung } from '../lib/db';
 import { berechneKategorieDurchschnitte, berechneGewichteteNote } from '../lib/berechnungen';
 import AuswertungChart from './AuswertungChart';
 import KiZusammenfassung from './KiZusammenfassung';
@@ -25,33 +25,6 @@ const SKALA_FARBEN = {
   1: 'border-red-400 bg-red-500 text-white shadow-red-200',
 };
 
-function NoteAnzeige({ auswertung }) {
-  const ergebnis = berechneGewichteteNote(auswertung);
-  if (!ergebnis) return null;
-  return (
-    <div className="card overflow-hidden print-container">
-      <div className="bg-gradient-to-r from-slate-700 to-slate-600 px-5 py-4">
-        <h3 className="text-base font-bold text-white">Notenberechnung</h3>
-      </div>
-      <div className="p-5 flex items-center gap-6">
-        <div className="text-center">
-          <p className="text-sm text-slate-500 mb-1">Gewichteter Index</p>
-          <p className="text-3xl font-bold text-slate-800">{ergebnis.index}</p>
-        </div>
-        <div className="text-center">
-          <p className="text-sm text-slate-500 mb-1">Note</p>
-          <p className="text-3xl font-bold text-indigo-600">{ergebnis.note}</p>
-        </div>
-        <div className="text-xs text-slate-400 flex-1">
-          <p>Theorie: Didaktik 3-fach · Aktivierung 1-fach · Ausbilderverhalten 1-fach</p>
-          <p className="mt-1">Fahrstunde: Didaktik 2-fach · Sicherheit 2-fach · Komm. 1-fach · Einleitung 1-fach · Abschluss 1-fach</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
 function KategorieBlock({ kategorie, auswertung, alleOffen, onPunkteChange, onNotizChange }) {
   const [offen, setOffen] = useState(false);
 
@@ -61,7 +34,6 @@ function KategorieBlock({ kategorie, auswertung, alleOffen, onPunkteChange, onNo
     else if (alleOffen === false) setOffen(false);
   }, [alleOffen]);
 
-  // Bewertungsfortschritt für die Kopfzeile
   const bewerteteAnzahl = kategorie.punkte.filter(p => {
     const id = `${kategorie.id}_${p.id}`;
     return auswertung?.punkte?.[id];
@@ -141,13 +113,13 @@ function KategorieBlock({ kategorie, auswertung, alleOffen, onPunkteChange, onNo
   );
 }
 
-function Auswertebogen({ lehrprobeId, lehrprobe }) {
+function Auswertebogen({ eintragId, eintrag }) {
   const [auswertung, setAuswertung] = useState(null);
   const [durchschnitte, setDurchschnitte] = useState(null);
   const [loading, setLoading] = useState(true);
   const [alleOffen, setAlleOffen] = useState(null); // null=default, true=alle offen, false=alle zu
 
-  const typ = lehrprobe?.typ || 'theorie';
+  const typ = eintrag?.typ || 'theorie';
   const kriterien = typ === 'fahrstunde' ? KRITERIEN_FAHRSTUNDE : KRITERIEN_THEORIE;
 
   const debouncedSave = useCallback(
@@ -156,25 +128,25 @@ function Auswertebogen({ lehrprobeId, lehrprobe }) {
         await updateAuswertung(dataToSave);
       } else {
         const newId = crypto.randomUUID();
-        const finalData = { ...dataToSave, id: newId, lehrprobeId };
+        const finalData = { ...dataToSave, id: newId, lehrprobeId: eintragId };
         await addAuswertung(finalData);
         setAuswertung(finalData);
       }
     }, 300),
-    [lehrprobeId]
+    [eintragId]
   );
 
   useEffect(() => {
     const loadAuswertung = async () => {
       setLoading(true);
-      const existing = await getAuswertungenForLehrprobe(lehrprobeId);
+      const existing = await getAuswertungenFuerEintrag(eintragId);
       const currentAuswertung = existing[0] || { punkte: {}, notizen: {}, gesamtnote: '', typ };
       setAuswertung(currentAuswertung);
       setDurchschnitte(berechneKategorieDurchschnitte(currentAuswertung));
       setLoading(false);
     };
     loadAuswertung();
-  }, [lehrprobeId]);
+  }, [eintragId]);
 
   useEffect(() => {
     if (auswertung && !loading) {
@@ -195,14 +167,13 @@ function Auswertebogen({ lehrprobeId, lehrprobe }) {
     setAuswertung(prev => ({ ...prev, gesamtnote: text }));
   };
 
-
   if (loading) return <div className="text-center p-8 text-slate-500">Lade Auswertebogen...</div>;
 
   return (
     <div className="space-y-6">
       <AuswertungChart durchschnitte={durchschnitte} auswertung={auswertung} />
-      {auswertung && durchschnitte && lehrprobe && (
-        <KiZusammenfassung auswertung={auswertung} durchschnitte={durchschnitte} lehrprobe={lehrprobe} />
+      {auswertung && durchschnitte && eintrag && (
+        <KiZusammenfassung auswertung={auswertung} durchschnitte={durchschnitte} eintrag={eintrag} />
       )}
 
       {/* Alle öffnen / Alle schließen */}

@@ -3,7 +3,7 @@ import { PenLine, X, Trash2, Keyboard, Pen, Save } from 'lucide-react';
 import { getGespraechsnotiz, saveGespraechsnotiz } from '../lib/db';
 import Zeichenflaeche from './Zeichenflaeche';
 
-function GlobaleNotiz({ lehrprobeId }) {
+function GlobaleNotiz({ eintragId }) {
   const [offen, setOffen] = useState(false);
   const [tastaturText, setTastaturText] = useState('');
   const [stiftData, setStiftData] = useState(null);
@@ -12,24 +12,24 @@ function GlobaleNotiz({ lehrprobeId }) {
   const timerRef = useRef(null);
 
   useEffect(() => {
-    if (!lehrprobeId) return;
-    getGespraechsnotiz(lehrprobeId).then(notiz => {
+    if (!eintragId) return;
+    getGespraechsnotiz(eintragId).then(notiz => {
       if (notiz) {
         setTastaturText(notiz.tastaturText || '');
         setStiftData(notiz.stiftData || null);
       }
     });
-  }, [lehrprobeId]);
+  }, [eintragId]);
 
   const handleSpeichern = async () => {
-    await saveGespraechsnotiz(lehrprobeId, { tastaturText, stiftData });
+    await saveGespraechsnotiz(eintragId, { tastaturText, stiftData });
     setGespeichert(true);
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setGespeichert(false), 2000);
   };
 
   const handleSchliessen = async () => {
-    await saveGespraechsnotiz(lehrprobeId, { tastaturText, stiftData });
+    await saveGespraechsnotiz(eintragId, { tastaturText, stiftData });
     setOffen(false);
   };
 
@@ -37,7 +37,7 @@ function GlobaleNotiz({ lehrprobeId }) {
     if (!window.confirm('Notiz wirklich löschen?')) return;
     setTastaturText('');
     setStiftData(null);
-    await saveGespraechsnotiz(lehrprobeId, { tastaturText: '', stiftData: null });
+    await saveGespraechsnotiz(eintragId, { tastaturText: '', stiftData: null });
   };
 
   const hatInhalt = tastaturText.trim() || stiftData;
@@ -107,7 +107,7 @@ function GlobaleNotiz({ lehrprobeId }) {
                   autoFocus />
               ) : (
                 <Zeichenflaeche
-                  seiteId={`global-notiz-${lehrprobeId}`}
+                  seiteId={`global-notiz-${eintragId}`}
                   gespeicherteData={stiftData}
                   onSpeichern={data => setStiftData(data)}
                 />

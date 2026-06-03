@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { getLehrproben } from '../lib/db';
-import NeueLehrprobeModal from '../components/NeueLehrprobeModal';
+import { getAuswertungseintraege } from '../lib/db';
+import NeueAuswertungModal from '../components/NeueLehrprobeModal';
 import {
   Plus, BookOpen, Calendar, ChevronRight, ChevronDown, ChevronUp,
   ClipboardList, Search, X, GraduationCap, Car, BarChart2, FolderOpen
@@ -79,16 +79,16 @@ function AnwaerterOrdner({ name, auswertungen }) {
       {offen && (
         <div className="border-t border-slate-100 dark:border-slate-700">
           <div className="px-4 py-3 space-y-1">
-            {auswertungen.map(probe => (
+            {auswertungen.map(eintrag => (
               <Link
-                key={probe.id}
-                to={`/lehrprobe/${probe.id}`}
+                key={eintrag.id}
+                to={`/auswertung/${eintrag.id}`}
                 className="flex items-center gap-3 p-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition group"
               >
-                <TypBadge typ={probe.typ} />
-                <p className="flex-1 text-sm text-slate-700 dark:text-slate-300 truncate">{probe.thema}</p>
+                <TypBadge typ={eintrag.typ} />
+                <p className="flex-1 text-sm text-slate-700 dark:text-slate-300 truncate">{eintrag.thema}</p>
                 <span className="text-xs text-slate-400 flex-shrink-0">
-                  {format(new Date(probe.datum), 'dd.MM.yy')}
+                  {format(new Date(eintrag.datum), 'dd.MM.yy')}
                 </span>
                 <ChevronRight size={15} className="text-slate-300 group-hover:text-indigo-500 transition flex-shrink-0" />
               </Link>
@@ -101,22 +101,22 @@ function AnwaerterOrdner({ name, auswertungen }) {
 }
 
 function Home() {
-  const [lehrproben, setLehrproben] = useState([]);
+  const [eintraege, setEintraege] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [suche, setSuche] = useState('');
   const [aktuellerTab, setAktuellerTab] = useState('auswertungen');
 
-  const loadLehrproben = async () => {
-    const data = await getLehrproben();
-    setLehrproben(data);
+  const laden = async () => {
+    const data = await getAuswertungseintraege();
+    setEintraege(data);
     setIsModalOpen(false);
   };
 
-  useEffect(() => { loadLehrproben(); }, []);
+  useEffect(() => { laden(); }, []);
 
   // Gruppiere nach Anwärter-Name
   const anwaerterMap = {};
-  lehrproben.forEach(p => {
+  eintraege.forEach(p => {
     if (!anwaerterMap[p.prüfling]) anwaerterMap[p.prüfling] = [];
     anwaerterMap[p.prüfling].push(p);
   });
@@ -176,14 +176,14 @@ function Home() {
             <p className="text-slate-500 mt-1">
               {anzahlAnwaerter === 0
                 ? 'Noch keine Einträge'
-                : `${anzahlAnwaerter} Anwärter · ${lehrproben.length} Auswertungen`}
+                : `${anzahlAnwaerter} Anwärter · ${eintraege.length} Auswertungen`}
             </p>
             <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">
               <Plus size={20} /><span>Neue Auswertung</span>
             </button>
           </div>
 
-          {lehrproben.length > 0 && (
+          {eintraege.length > 0 && (
             <>
               {/* Statistik */}
               <div className="grid grid-cols-2 gap-4 mb-6">
@@ -201,7 +201,7 @@ function Home() {
                     <ClipboardList size={22} className="text-emerald-600" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{lehrproben.length}</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{eintraege.length}</p>
                     <p className="text-sm text-slate-500">Auswertungen</p>
                   </div>
                 </div>
@@ -227,7 +227,7 @@ function Home() {
           )}
 
           {/* Anwärter-Ordner */}
-          {lehrproben.length === 0 ? (
+          {eintraege.length === 0 ? (
             <div className="card p-16 text-center">
               <div className="bg-indigo-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-5">
                 <BookOpen size={36} className="text-indigo-400" />
@@ -250,10 +250,10 @@ function Home() {
             </div>
           )}
 
-          <NeueLehrprobeModal
+          <NeueAuswertungModal
             isOpen={isModalOpen}
             onClose={() => setIsModalOpen(false)}
-            onLehrprobeAdded={loadLehrproben}
+            onHinzugefuegt={laden}
           />
         </>
       )}

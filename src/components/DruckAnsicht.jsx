@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAuswertungenForLehrprobe } from '../lib/db';
+import { getAuswertungenFuerEintrag } from '../lib/db';
 import { berechneKategorieDurchschnitte } from '../lib/berechnungen';
 import { KRITERIEN_THEORIE, KRITERIEN_FAHRSTUNDE } from '../data/kriterien';
 import { format } from 'date-fns';
@@ -184,7 +184,7 @@ export default function DruckAnsicht({ probe }) {
   const [auswertung, setAuswertung] = useState(null);
 
   useEffect(() => {
-    getAuswertungenForLehrprobe(probe.id).then(a => setAuswertung(a[0] || null));
+    getAuswertungenFuerEintrag(probe.id).then(a => setAuswertung(a[0] || null));
   }, [probe.id]);
 
   const handleDrucken = () => {
